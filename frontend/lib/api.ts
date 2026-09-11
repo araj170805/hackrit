@@ -133,3 +133,14 @@ export async function updateModerationStatus(issueId: string, action: string) {
   });
 }
 
+export async function upvoteComplaint(issueId: string) {
+  const res = await supportCommunityIssue(issueId);
+  return {
+    success: true,
+    upvotes: res.communitySupportCount,
+    communityImpactScore: res.finalPriorityScore,
+    priority: res.priority
+  };
+}
+
+
