@@ -21,19 +21,23 @@ async def sync_user(user_data: UserCreate, auth_payload: Dict[str, Any] = Depend
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     existing = await get_user(uid)
+    existing_role = existing.get("role", "citizen") if existing else "citizen"
 
-    # Role is never trusted from the client directly. An existing stored role
-    # is always preserved on re-sync. A brand-new user is "citizen" unless they
-    # supply the shared AUTHORITY_INVITE_CODE, in which case they become
-    # "authority" — this is the only sanctioned way to self-provision an
-    # authority account.
-    if existing:
-        role = existing.get("role", "citizen")
-    elif (
+    # Role is never trusted from the client directly — the only sanctioned way
+    # to become "authority" is presenting the shared AUTHORITY_INVITE_CODE.
+    # An already-elevated account (authority/admin) always keeps its role.
+    # A citizen (new or existing) can elevate any time they present a valid
+    # code — not just at first signup, since the login page has no separate
+    # "first time" concept — but never loses authority by omitting it later.
+    valid_invite = bool(
         settings.AUTHORITY_INVITE_CODE
         and user_data.inviteCode
         and user_data.inviteCode == settings.AUTHORITY_INVITE_CODE
-    ):
+    )
+
+    if existing_role in ("authority", "admin"):
+        role = existing_role
+    elif valid_invite:
         role = "authority"
     else:
         role = "citizen"

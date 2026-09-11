@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Shield, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
+import { Shield, Lock, Mail, KeyRound, ArrowRight, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AuthorityLoginPage() {
@@ -11,8 +11,18 @@ export default function AuthorityLoginPage() {
   const { loginWithEmail, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleResult = (profile: { role: string } | null) => {
+    const isAuthority = profile?.role === "authority" || profile?.role === "admin";
+    if (isAuthority) {
+      router.push("/admin");
+    } else {
+      setError("This account isn't set up as an authority yet. Enter your authority invite code above and try again.");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +30,8 @@ export default function AuthorityLoginPage() {
     setLoading(true);
 
     try {
-      await loginWithEmail(email, password);
-      router.push("/admin");
+      const profile = await loginWithEmail(email, password, inviteCode || undefined);
+      handleResult(profile);
     } catch (err: any) {
       setError(err.message || "Failed to log in. Please check credentials.");
     } finally {
@@ -32,8 +42,8 @@ export default function AuthorityLoginPage() {
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      await loginWithGoogle();
-      router.push("/admin");
+      const profile = await loginWithGoogle(inviteCode || undefined);
+      handleResult(profile);
     } catch (err: any) {
       setError(err.message || "Google sign in failed.");
     }
@@ -42,7 +52,7 @@ export default function AuthorityLoginPage() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
-        
+
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 mx-auto flex items-center justify-center">
             <Shield className="w-6 h-6" />
@@ -87,6 +97,21 @@ export default function AuthorityLoginPage() {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">Authority Invite Code</label>
+            <div className="relative">
+              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Only needed the first time"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">Already an authority account? Leave this blank.</p>
           </div>
 
           <button

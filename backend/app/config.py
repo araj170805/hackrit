@@ -16,9 +16,11 @@ class Settings(BaseSettings):
     
     NOMINATIM_BASE_URL: str = "https://nominatim.openstreetmap.org"
 
-    # Shared secret required to self-register an authority account. Role is
+    # Shared secret required to self-elevate to an authority account. Role is
     # never trusted from the client otherwise (see app/routers/auth.py).
-    AUTHORITY_INVITE_CODE: Optional[str] = ""
+    # Defaults to a demo value so the authority flow works out of the box;
+    # override via env in any deployment where that matters.
+    AUTHORITY_INVITE_CODE: Optional[str] = "CIVICFIX-AUTHORITY"
 
     # Interval for the in-process SLA monitoring loop (see app/main.py lifespan).
     SLA_MONITOR_INTERVAL_SECONDS: int = 900
