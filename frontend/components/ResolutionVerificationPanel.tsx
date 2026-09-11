@@ -38,6 +38,7 @@ export function ResolutionVerificationPanel({ complaint, onUpdated }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [issuedToken, setIssuedToken] = useState<string | null>(null);
+  const [issuedQrCode, setIssuedQrCode] = useState<string | null>(null);
 
   const [token, setToken] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
@@ -50,6 +51,7 @@ export function ResolutionVerificationPanel({ complaint, onUpdated }: Props) {
     try {
       const res = await requestVerification(complaint.complaintId);
       setIssuedToken(res.token);
+      setIssuedQrCode(res.qrCode || null);
       onUpdated({ ...complaint, verificationStatus: "PENDING_EVIDENCE" });
     } catch (err: any) {
       setError(err.message || "Failed to request verification.");
@@ -103,6 +105,7 @@ export function ResolutionVerificationPanel({ complaint, onUpdated }: Props) {
     try {
       const updated = await confirmResolution(complaint.complaintId, action);
       setIssuedToken(action === "request_new" ? updated.verificationToken?.token || null : null);
+      setIssuedQrCode(action === "request_new" ? updated.qrCode || null : null);
       onUpdated(updated);
     } catch (err: any) {
       setError(err.message || "Failed to record decision.");
@@ -155,10 +158,17 @@ export function ResolutionVerificationPanel({ complaint, onUpdated }: Props) {
       )}
 
       {isAuthority && issuedToken && (
-        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs space-y-1">
+        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs space-y-2">
           <div className="flex items-center gap-1.5 font-bold"><KeyRound className="w-3.5 h-3.5" /> One-time verification token</div>
-          <div className="font-mono text-sm bg-white px-2 py-1 rounded-lg border border-indigo-200">{issuedToken}</div>
-          <p>Share this with whoever is capturing resolution evidence (citizen or field worker). It expires in 24 hours and can only be used once.</p>
+          <div className="flex items-center gap-3">
+            {issuedQrCode && (
+              <img src={issuedQrCode} alt="Scannable QR code for the verification token" className="w-20 h-20 rounded-lg border border-indigo-200 bg-white p-1 shrink-0" />
+            )}
+            <div className="space-y-1">
+              <div className="font-mono text-sm bg-white px-2 py-1 rounded-lg border border-indigo-200 inline-block">{issuedToken}</div>
+              <p>Share this token or QR code with whoever is capturing resolution evidence (citizen or field worker). It expires in 24 hours and can only be used once.</p>
+            </div>
+          </div>
         </div>
       )}
 

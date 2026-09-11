@@ -8,6 +8,7 @@ from app.database import get_complaint, save_complaint, get_agent_log, save_agen
 from app.firebase import verify_firebase_token, require_role
 from app.services.verification import (
     generate_verification_token,
+    generate_qr_code_data_uri,
     check_token,
     check_location,
     check_timestamp,
@@ -54,6 +55,7 @@ async def request_verification(
         "complaintId": complaint_id,
         "token": token_record["token"],
         "expiresAt": token_record["expiresAt"],
+        "qrCode": generate_qr_code_data_uri(token_record["token"]),
     }
 
 
@@ -188,7 +190,10 @@ async def confirm_resolution(
         "createdAt": datetime.utcnow().isoformat()
     })
 
-    return complaint
+    response = dict(complaint)
+    if payload.action == "request_new":
+        response["qrCode"] = generate_qr_code_data_uri(token_record["token"])
+    return response
 
 
 @router.post("/{complaint_id}/citizen-feedback")

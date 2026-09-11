@@ -1,6 +1,10 @@
+import base64
 import secrets
 from datetime import datetime, timedelta
-from typing import Dict, Any, Tuple
+from io import BytesIO
+from typing import Dict, Any, Optional, Tuple
+
+import qrcode
 
 from app.services.haversine import haversine_distance
 
@@ -37,6 +41,20 @@ def generate_verification_token(complaint_id: str) -> Dict[str, Any]:
         "expiresAt": (now + timedelta(hours=TOKEN_TTL_HOURS)).isoformat(),
         "used": False,
     }
+
+
+def generate_qr_code_data_uri(token: str) -> str:
+    """
+    Renders the one-time verification token as a QR code (PNG, base64 data
+    URI) so a field worker can scan it during evidence capture instead of
+    retyping it. The QR just encodes the token string — it's an additional
+    verification signal, not proof the physical work was done.
+    """
+    img = qrcode.make(token, box_size=8, border=2)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{encoded}"
 
 
 def check_token(token_record: Dict[str, Any], submitted_token: str, complaint_id: str) -> Tuple[bool, str]:
