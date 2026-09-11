@@ -23,9 +23,9 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   idToken: string | null;
   loading: boolean;
-  loginWithEmail: (e: string, p: string, inviteCode?: string) => Promise<UserProfile | null>;
-  loginWithGoogle: (inviteCode?: string) => Promise<UserProfile | null>;
-  registerUser: (name: string, e: string, p: string, inviteCode?: string) => Promise<UserProfile | null>;
+  loginWithEmail: (e: string, p: string, asAuthority?: boolean) => Promise<UserProfile | null>;
+  loginWithGoogle: (asAuthority?: boolean) => Promise<UserProfile | null>;
+  registerUser: (name: string, e: string, p: string, asAuthority?: boolean) => Promise<UserProfile | null>;
   logout: () => Promise<void>;
 }
 
@@ -48,11 +48,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const syncBackendUser = async (u: User, inviteCode?: string): Promise<UserProfile | null> => {
+  // asAuthority=true hits the dedicated authority sync endpoint, which
+  // grants the "authority" role. A plain resync (app load, citizen login)
+  // always preserves whatever role is already stored.
+  const syncBackendUser = async (u: User, asAuthority = false): Promise<UserProfile | null> => {
     try {
       const token = await u.getIdToken();
       setIdToken(token);
-      const res = await fetch(`${API_BASE_URL}/api/auth/sync`, {
+      const endpoint = asAuthority ? "/api/auth/sync-authority" : "/api/auth/sync";
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,8 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           firebaseUid: u.uid,
           name: u.displayName || u.email?.split("@")[0] || "Citizen User",
-          email: u.email || "",
-          inviteCode
+          email: u.email || ""
         })
       });
       if (res.ok) {
@@ -93,19 +96,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const loginWithEmail = async (email: string, pass: string, inviteCode?: string) => {
+  const loginWithEmail = async (email: string, pass: string, asAuthority = false) => {
     const res = await signInWithEmailAndPassword(auth, email, pass);
-    return await syncBackendUser(res.user, inviteCode);
+    return await syncBackendUser(res.user, asAuthority);
   };
 
-  const loginWithGoogle = async (inviteCode?: string) => {
+  const loginWithGoogle = async (asAuthority = false) => {
     const res = await signInWithPopup(auth, googleProvider);
-    return await syncBackendUser(res.user, inviteCode);
+    return await syncBackendUser(res.user, asAuthority);
   };
 
-  const registerUser = async (name: string, email: string, pass: string, inviteCode?: string) => {
+  const registerUser = async (name: string, email: string, pass: string, asAuthority = false) => {
     const res = await createUserWithEmailAndPassword(auth, email, pass);
-    return await syncBackendUser(res.user, inviteCode);
+    return await syncBackendUser(res.user, asAuthority);
   };
 
   const logout = async () => {

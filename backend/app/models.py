@@ -20,7 +20,6 @@ class UserCreate(BaseModel):
     name: str
     email: str
     role: Optional[str] = "citizen"
-    inviteCode: Optional[str] = None
 
 class ComplaintSubmitRequest(BaseModel):
     description: str
