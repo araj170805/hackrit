@@ -11,6 +11,8 @@ import {
 import { getComplaintDetails, upvoteComplaint } from "@/lib/api";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { LeafletMap } from "@/components/LeafletMap";
+import { ResolutionVerificationPanel } from "@/components/ResolutionVerificationPanel";
+import { ResourceRecommendationCard } from "@/components/ResourceRecommendationCard";
 import { useAuth } from "@/context/AuthContext";
 
 // ── Priority color helpers ──────────────────────────────────────────────────
@@ -326,6 +328,15 @@ export default function ComplaintDetailPage() {
           height="350px"
         />
       </div>
+
+      {/* ── Resource Recommendation Agent (authority only) ── */}
+      <ResourceRecommendationCard complaintId={complaint.complaintId} />
+
+      {/* ── Resolution Verification Panel ── */}
+      <ResolutionVerificationPanel
+        complaint={complaint}
+        onUpdated={(updated) => setData((prev: any) => prev ? { ...prev, complaint: updated } : prev)}
+      />
 
       {/* ── Agent Activity Trace Log ── */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-6">

@@ -2,66 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
-
-// ── Civic Q&A Knowledge Base ──────────────────────────────────────────────
-const FAQ: { q: string[]; a: string }[] = [
-  {
-    q: ["how does civicfix work", "what is civicfix", "explain civicfix", "how it works"],
-    a: "CivicFix is an autonomous AI civic platform. When you submit a complaint, the AI agent: (1) classifies category & severity via Gemini, (2) reverse-geocodes your GPS, (3) scores priority deterministically, (4) detects spatial duplicates via Haversine within 100m, (5) routes to the correct department, and (6) sets an SLA deadline."
-  },
-  {
-    q: ["what categories", "types of complaints", "what can i report", "issue types"],
-    a: "You can report 4 types of civic issues:\n• 🕳️ Pothole / Road Damage\n• 🗑️ Garbage / Waste Overflow\n• 💡 Broken Streetlight\n• 💧 Water Leakage / Pipe Burst\n\nMore categories will be added in future updates."
-  },
-  {
-    q: ["priority", "how is priority calculated", "priority score", "why critical"],
-    a: "Priority is calculated deterministically (not by AI guesswork):\n• Base severity: Low (+1), Medium (+2), High (+3), Critical (+4)\n• Near school/college: +2\n• Near hospital: +2\n• Main road/junction: +2\n• Residential area: +1\n• Safety hazard reported: +2\n\nScore ≥7 = CRITICAL, ≥5 = HIGH, ≥3 = MEDIUM, else LOW."
-  },
-  {
-    q: ["sla", "how long", "resolution time", "deadline", "how many hours"],
-    a: "SLA (Service Level Agreement) resolution windows by category:\n• Pothole: 72 hours\n• Garbage: 24 hours\n• Broken Streetlight: 48 hours\n• Water Leakage: 12 hours\n\nBreached SLAs are automatically escalated to CRITICAL priority."
-  },
-  {
-    q: ["duplicate", "same complaint", "duplicate detection", "already reported"],
-    a: "CivicFix uses the Haversine formula to search within 100 meters of your GPS location. If a complaint of the same category already exists nearby, your report is consolidated into the master case — increasing the affected citizen count and community impact score, rather than creating a redundant entry."
-  },
-  {
-    q: ["community impact", "impact score", "what is impact score"],
-    a: "The Community Impact Score (0–100) reflects how seriously an issue affects the community:\n• Base severity (15–70 pts)\n• +8 per additional citizen/duplicate report (max +35)\n• +10 per critical location (school/hospital/main road, max +20)\n• +0.5 per unresolved hour (max +15)\n\nA higher score means faster escalation priority."
-  },
-  {
-    q: ["gemini", "ai", "gemini vision", "image analysis"],
-    a: "CivicFix uses Google's Gemini 1.5 Flash model for:\n• Natural language understanding of your complaint text\n• Vision analysis of uploaded photo evidence\n• Structured extraction of category, severity, and issue summary\n\nIf the Gemini API is unavailable, a local NLU fallback kicks in automatically."
-  },
-  {
-    q: ["escalation", "escalated", "what happens when escalated"],
-    a: "When an SLA deadline is breached, CivicFix autonomously:\n1. Elevates priority to CRITICAL\n2. Updates status to 'Escalated'\n3. Sends instant push notification to authorities\n4. Logs the escalation event in the agent activity trace\n\nAdmins can also trigger manual escalation via the Command Center."
-  },
-  {
-    q: ["department", "who handles", "which department", "routing"],
-    a: "Department routing is deterministic based on category:\n• 🕳️ Pothole → Road Maintenance Department\n• 🗑️ Garbage → Municipal Sanitation Department\n• 💡 Streetlight → Electrical Infrastructure Division\n• 💧 Water Leakage → Water & Sewerage Board"
-  },
-  {
-    q: ["status", "complaint status", "track complaint", "what does status mean"],
-    a: "Complaint statuses in CivicFix:\n• ⚪ Submitted — newly filed, queued for review\n• 🔵 In Progress — department has acknowledged the case\n• 🔴 Escalated — SLA breached, escalated to authority\n• ✅ Resolved — issue has been fixed and closed"
-  },
-  {
-    q: ["photo", "image", "upload photo", "evidence"],
-    a: "You can upload photo evidence when submitting a complaint. The image is stored on Cloudinary CDN and analyzed by Gemini Vision to aid in accurate classification. Photos significantly increase the credibility and community impact score of your report."
-  },
-  {
-    q: ["location", "gps", "geolocation", "coordinates"],
-    a: "CivicFix uses your browser's GPS to capture precise coordinates. The Nominatim (OpenStreetMap) API reverse-geocodes these to a human-readable address. You can also click on the map to fine-tune your exact location. Accurate GPS is critical for duplicate detection and department routing."
-  },
-  {
-    q: ["voice", "speak", "voice input", "microphone"],
-    a: "On the Report page, click the 🎙 Speak button to use your microphone. CivicFix uses the Web Speech API (available in Chrome/Edge) to transcribe your spoken complaint into text. Just describe the issue naturally — the AI agent handles classification."
-  },
-  {
-    q: ["hello", "hi", "hey", "help"],
-    a: "👋 Hello! I'm the CivicFix AI Assistant. I can answer questions about:\n• How CivicFix works\n• Complaint categories & departments\n• Priority scoring & SLA deadlines\n• Duplicate detection & escalation\n• Community impact scores\n\nJust type your question!"
-  }
-];
+import { askAssistant } from "@/lib/api";
 
 interface Message {
   role: "user" | "bot";
@@ -69,12 +10,15 @@ interface Message {
   time: string;
 }
 
-function getAnswer(input: string): string {
-  const q = input.toLowerCase().trim();
-  for (const faq of FAQ) {
-    if (faq.q.some(kw => q.includes(kw))) return faq.a;
-  }
-  return "I don't have a specific answer for that, but I'm here to help with CivicFix questions! Try asking about:\n• Priority scoring\n• SLA deadlines\n• Duplicate detection\n• Community impact scores\n• How to report an issue";
+function getCurrentPosition(): Promise<GeolocationPosition | null> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos),
+      () => resolve(null),
+      { timeout: 4000 }
+    );
+  });
 }
 
 function now() {
@@ -82,17 +26,17 @@ function now() {
 }
 
 const QUICK_PROMPTS = [
-  "How is priority calculated?",
-  "What is the impact score?",
-  "How does duplicate detection work?",
-  "What are the SLA deadlines?"
+  "What problems are near me?",
+  "Has my complaint been resolved?",
+  "Are there recurring issues in my area?",
+  "Which department handles this?"
 ];
 
 export function CivicChatbot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
-    { role: "bot", text: "👋 Hi! I'm CivicFix Assistant. Ask me anything about how the platform works — priorities, SLAs, duplicate detection, and more.", time: now() }
+    { role: "bot", text: "👋 Hi! I'm the CivicFix Assistant. Ask me about issues near you, your complaint status, or recurring problems in your area — I'll look up real data to answer.", time: now() }
   ]);
   const [typing, setTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -101,7 +45,7 @@ export function CivicChatbot() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
 
-  const sendMessage = (text?: string) => {
+  const sendMessage = async (text?: string) => {
     const msg = (text || input).trim();
     if (!msg) return;
     setInput("");
@@ -110,11 +54,15 @@ export function CivicChatbot() {
     setMessages(prev => [...prev, userMsg]);
     setTyping(true);
 
-    setTimeout(() => {
-      const answer = getAnswer(msg);
-      setMessages(prev => [...prev, { role: "bot", text: answer, time: now() }]);
+    try {
+      const pos = await getCurrentPosition();
+      const res = await askAssistant(msg, pos?.coords.latitude, pos?.coords.longitude);
+      setMessages(prev => [...prev, { role: "bot", text: res.answer, time: now() }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "bot", text: "Sorry, I couldn't reach the assistant right now. Please try again.", time: now() }]);
+    } finally {
       setTyping(false);
-    }, 600 + Math.random() * 400);
+    }
   };
 
   const handleKey = (e: React.KeyboardEvent) => {

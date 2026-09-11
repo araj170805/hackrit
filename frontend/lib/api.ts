@@ -89,6 +89,53 @@ export async function updateComplaintStatus(id: string, status: string, departme
   });
 }
 
+export async function requestVerification(id: string) {
+  return apiFetch(`/api/complaints/${id}/request-verification`, { method: "POST" });
+}
+
+export async function submitResolutionEvidence(id: string, payload: {
+  token: string;
+  imageUrl: string;
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  capturedAt: string;
+}) {
+  return apiFetch(`/api/complaints/${id}/resolution-evidence`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function getVerification(id: string) {
+  return apiFetch(`/api/complaints/${id}/verification`);
+}
+
+export async function confirmResolution(id: string, action: "confirm" | "reject" | "request_new", note?: string) {
+  return apiFetch(`/api/complaints/${id}/confirm-resolution`, {
+    method: "POST",
+    body: JSON.stringify({ action, note })
+  });
+}
+
+export async function submitCitizenFeedback(id: string, fixed: boolean) {
+  return apiFetch(`/api/complaints/${id}/citizen-feedback`, {
+    method: "POST",
+    body: JSON.stringify({ fixed })
+  });
+}
+
+export async function getResourceRecommendation(id: string) {
+  return apiFetch(`/api/complaints/${id}/resource-recommendation`);
+}
+
+export async function askAssistant(message: string, latitude?: number, longitude?: number) {
+  return apiFetch("/api/assistant/ask", {
+    method: "POST",
+    body: JSON.stringify({ message, latitude, longitude })
+  });
+}
+
 export async function simulateSlaBreach(id: string) {
   return apiFetch(`/api/monitor/simulate-breach/${id}`, {
     method: "POST"

@@ -38,10 +38,10 @@ except Exception as e:
 async def verify_firebase_token(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
     """
     Verifies Firebase ID token from Bearer Authorization header.
-    Falls back to demo user if Firebase is not configured.
+    Requires a valid Bearer token; no anonymous/demo fallback.
     """
     if not authorization or not authorization.startswith("Bearer "):
-        return {"uid": "demo-user-123", "email": "citizen@civicfix.org", "name": "Demo Citizen", "role": "citizen"}
+        raise HTTPException(status_code=401, detail="Missing Firebase Authentication Token")
 
     token = authorization.split("Bearer ")[1]
 
@@ -54,7 +54,29 @@ async def verify_firebase_token(authorization: Optional[str] = Header(None)) -> 
             logger.warning(f"Token verification failed: {e}")
             raise HTTPException(status_code=401, detail="Invalid Firebase Authentication Token")
 
-    return {"uid": token[:50] if token else "demo-user-123", "email": "citizen@civicfix.org", "name": "Demo Citizen", "role": "citizen"}
+    # Firebase Admin not configured (local/dev only): trust the token as an opaque
+    # stable per-session identifier. Still requires a Bearer token — no anonymous access.
+    logger.warning("Firebase Admin not configured; accepting unverified bearer token as uid (dev mode).")
+    return {"uid": token[:128], "email": "", "name": "User"}
+
+
+def require_role(*allowed_roles: str):
+    """
+    Dependency factory that enforces the caller's role, looked up from MongoDB
+    (never trusted from the client/token). Use for authority/admin-only routes.
+    """
+    async def dependency(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
+        auth_payload = await verify_firebase_token(authorization)
+        from app.database import get_user
+        uid = auth_payload.get("uid")
+        user = await get_user(uid)
+        role = (user or {}).get("role", "citizen")
+        if role not in allowed_roles:
+            raise HTTPException(status_code=403, detail="You do not have permission to perform this action.")
+        auth_payload["role"] = role
+        return auth_payload
+
+    return dependency
 
 
 async def send_fcm_notification(fcm_token: str, title: str, body: str, data: Optional[Dict[str, str]] = None) -> bool:

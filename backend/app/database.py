@@ -33,7 +33,7 @@ async def connect_to_mongo():
             
             # Ensure indexes
             try:
-                await db_wrapper.db.complaints.create_index([("location", "2dsphere")])
+                await db_wrapper.db.complaints.create_index([("location.geo", "2dsphere")])
                 await db_wrapper.db.community_votes.create_index([("issueId", 1), ("userId", 1)], unique=True)
                 await db_wrapper.db.community_issue_reports.create_index([("issueId", 1), ("reporterUserId", 1)], unique=True)
             except Exception as ie:
@@ -125,6 +125,34 @@ async def save_notification(notif_data: Dict[str, Any]):
     else:
         db_wrapper.memory_notifications.append(notif_data)
 
+    await _push_notification(notif_data)
+
+
+async def _push_notification(notif_data: Dict[str, Any]):
+    """
+    Best-effort FCM push for the notification just persisted. Failures here
+    never affect the (already-saved) in-app notification history.
+    """
+    user_id = notif_data.get("userId")
+    if not user_id:
+        return
+    try:
+        from app.firebase import send_fcm_notification
+        user = await get_user(user_id)
+        tokens = (user or {}).get("fcmTokens") or []
+        for token in tokens:
+            await send_fcm_notification(
+                token,
+                notif_data.get("title", "CivicFix"),
+                notif_data.get("body", ""),
+                data={
+                    "type": notif_data.get("type", ""),
+                    "complaintId": notif_data.get("complaintId", "")
+                }
+            )
+    except Exception as e:
+        logger.warning(f"FCM push dispatch failed for user {user_id}: {e}")
+
 async def get_notifications(user_id: str) -> List[Dict[str, Any]]:
     if not db_wrapper.is_mock and db_wrapper.db is not None:
         cursor = db_wrapper.db.notifications.find({"userId": user_id}, {"_id": 0}).sort("createdAt", -1)
@@ -143,7 +171,7 @@ async def get_nearby_complaints_geo(lat: float, lon: float, radius_meters: float
     if not db_wrapper.is_mock and db_wrapper.db is not None:
         try:
             query = {
-                "location": {
+                "location.geo": {
                     "$near": {
                         "$geometry": {
                             "type": "Point",

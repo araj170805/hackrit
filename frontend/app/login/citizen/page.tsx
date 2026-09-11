@@ -20,7 +20,7 @@ export default function CitizenLoginPage() {
     setLoading(true);
 
     try {
-      await loginWithEmail(email, password, "citizen");
+      await loginWithEmail(email, password);
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to log in. Please check credentials.");
@@ -32,7 +32,7 @@ export default function CitizenLoginPage() {
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      await loginWithGoogle("citizen");
+      await loginWithGoogle();
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Google sign in failed.");

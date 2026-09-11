@@ -1,17 +1,15 @@
-import os
-import json
 import logging
-import httpx
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from app.config import settings
-from app.services.geocoding import reverse_geocode
+from app.services.geocoding import reverse_geocode, get_area_label
 from app.services.priority import calculate_priority_score
 from app.services.sla import calculate_sla_and_deadline
 from app.services.duplicate import find_nearby_complaints, detect_duplicate_complaint, consolidate_duplicate
 from app.services.community_impact import calculate_community_impact_score
+from app.services.gemini_client import call_gemini_json, fetch_image_as_inline_part
+from app.services.recurrence import detect_recurrence, register_recurrence
 from app.agent.tools import generate_complaint_id, find_department_tool
 from app.database import save_complaint, save_agent_log, save_notification
 
@@ -31,6 +29,7 @@ class AgentState(BaseModel):
     severity: str = "medium"
     summary: str = ""
     address: str = ""
+    area: str = ""
     priorityScore: int = 1
     priority: str = "MEDIUM"
     priorityReason: List[str] = []
@@ -44,44 +43,31 @@ class AgentState(BaseModel):
     deadline: str = ""
     impactRadius: int = 100
     events: List[Dict[str, Any]] = []
+    isRecurrence: bool = False
+    recurrenceOf: Optional[str] = None
+    recurrenceConfidence: Optional[str] = None
 
 async def run_gemini_analysis(description: str, image_url: Optional[str] = None) -> Dict[str, Any]:
     """
     Invokes Gemini API to perform natural language/vision understanding and structured extraction.
-    Falls back gracefully to intelligent keyword parsing if API key is not configured.
+    Falls back gracefully to intelligent keyword parsing if API key is not configured or fails.
     """
-    if settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 5:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.GEMINI_API_KEY}"
-            
-            image_note = f"\nImage attached URL: {image_url}" if image_url else ""
-            prompt = f"""
-            You are CivicFix, an autonomous civic issue resolution agent.
-            Analyze the following citizen complaint (text and image context) and return ONLY a JSON object with:
-            - category: one of ["pothole", "garbage", "broken_streetlight", "water_leakage", "general_civic"]
-            - severity: one of ["low", "medium", "high", "critical"]
-            - summary: a concise 1-sentence summary of the issue.
+    prompt = f"""
+    You are CivicFix, an autonomous civic issue resolution agent.
+    Analyze the following citizen complaint (text and, if attached, image) and return ONLY a JSON object with:
+    - category: one of ["pothole", "garbage", "broken_streetlight", "water_leakage", "general_civic"]
+    - severity: one of ["low", "medium", "high", "critical"]
+    - summary: a concise 1-sentence summary of the issue.
 
-            Note: If the image or text represents a document, paper, receipt, homework, or general note rather than road damage, classify category as "general_civic".
+    Note: If the image or text represents a document, paper, receipt, homework, or general note rather than road damage, classify category as "general_civic".
 
-            Complaint text: "{description}"{image_note}
-            """
-            
-            parts = [{"text": prompt}]
-            payload = {
-                "contents": [{"parts": parts}],
-                "generationConfig": {"response_mime_type": "application/json"}
-            }
-            
-            async with httpx.AsyncClient(timeout=8.0) as client:
-                res = await client.post(url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
-                    text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed = json.loads(text)
-                    return parsed
-        except Exception as e:
-            logger.warning(f"Gemini API call failed: {e}. Utilizing local NLU fallback.")
+    Complaint text: "{description}"
+    """
+
+    image_part = await fetch_image_as_inline_part(image_url)
+    parsed = await call_gemini_json(prompt, image_part)
+    if parsed is not None:
+        return parsed
 
     # Resilient local NLU fallback
     desc_lower = (description + " " + (image_url or "")).lower()
@@ -130,6 +116,7 @@ async def process_civic_complaint_agent(request_data: Dict[str, Any]) -> Dict[st
 
     # 1. Step: Location analysis & Reverse Geocoding tool
     state.address = await reverse_geocode(state.latitude, state.longitude)
+    state.area = await get_area_label(state.latitude, state.longitude, state.address)
     events.append({
         "type": "location",
         "message": f"Location reverse-geocoded: {state.address} ({state.latitude:.4f}, {state.longitude:.4f})",
@@ -189,6 +176,20 @@ async def process_civic_complaint_agent(request_data: Dict[str, Any]) -> Dict[st
             "timestamp": datetime.utcnow().isoformat()
         })
 
+    # 5b. Step: Recurrence Detection Tool (Deterministic — only when not a live duplicate)
+    if not state.isDuplicate:
+        recurrence_match = await detect_recurrence(state.category, state.latitude, state.longitude)
+        if recurrence_match:
+            state.isRecurrence = True
+            state.recurrenceOf = recurrence_match["complaintId"]
+            state.recurrenceConfidence = recurrence_match["confidence"]
+            events.append({
+                "type": "recurrence",
+                "message": f"♻️ Possible recurring civic problem: similar issue was closed at case {recurrence_match['complaintId']} "
+                           f"({recurrence_match['distanceMeters']:.0f}m away, confidence: {recurrence_match['confidence']}).",
+                "timestamp": datetime.utcnow().isoformat()
+            })
+
     # 6. Step: Community Impact Calculation Tool (Deterministic)
     state.communityImpactScore = calculate_community_impact_score(
         severity=state.severity,
@@ -227,9 +228,17 @@ async def process_civic_complaint_agent(request_data: Dict[str, Any]) -> Dict[st
         "location": {
             "latitude": state.latitude,
             "longitude": state.longitude,
-            "accuracy": state.accuracy
+            "accuracy": state.accuracy,
+            # GeoJSON Point mirror of latitude/longitude, required for the
+            # MongoDB 2dsphere index (see database.py get_nearby_complaints_geo).
+            # Coordinate order is [longitude, latitude] per the GeoJSON spec.
+            "geo": {
+                "type": "Point",
+                "coordinates": [state.longitude, state.latitude]
+            }
         },
         "address": state.address,
+        "area": state.area,
         "imageUrl": state.imageUrl,
         "department": state.department,
         "duplicateOf": state.duplicateOf,
@@ -240,13 +249,28 @@ async def process_civic_complaint_agent(request_data: Dict[str, Any]) -> Dict[st
         "createdAt": now_iso,
         "deadline": state.deadline,
         "escalated": False,
-        "resolvedAt": None
+        "resolvedAt": None,
+        "isRecurrence": state.isRecurrence,
+        "recurrenceOf": state.recurrenceOf,
+        "recurrenceConfidence": state.recurrenceConfidence,
+        "recurrenceCount": 0
     }
 
     if state.isDuplicate and master_duplicate:
         await consolidate_duplicate(complaint_document, master_duplicate)
     else:
         await save_complaint(complaint_document)
+
+    if state.isRecurrence and state.recurrenceOf:
+        await register_recurrence(state.recurrenceOf)
+        await save_notification({
+            "userId": "authority_admin",
+            "title": f"♻️ Possible Recurring Issue: {state.complaintId}",
+            "body": f"New {state.category.replace('_', ' ')} report near previously closed case {state.recurrenceOf}. Confidence: {state.recurrenceConfidence}.",
+            "type": "recurrence_detected",
+            "complaintId": state.complaintId,
+            "createdAt": now_iso
+        })
 
     events.append({
         "type": "creation",

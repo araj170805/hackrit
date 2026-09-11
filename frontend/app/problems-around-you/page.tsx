@@ -2,29 +2,32 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  MapPin, 
-  ThumbsUp, 
-  Flag, 
-  AlertTriangle, 
-  RefreshCw, 
-  CheckCircle2, 
-  Clock, 
+import {
+  MapPin,
+  ThumbsUp,
+  Flag,
+  AlertTriangle,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
   ShieldAlert,
   Search,
   Filter,
   Navigation,
   ExternalLink,
-  X
+  X,
+  List,
+  Map as MapIcon
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import StatusBadge from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { LeafletMap } from "@/components/LeafletMap";
 import { getNearbyCommunityIssues, supportCommunityIssue, reportCommunityIssue } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 interface CommunityIssue {
-  complaintId: str;
+  complaintId: string;
   category: string;
   summary: string;
   description: string;
@@ -64,6 +67,7 @@ export default function ProblemsAroundYouPage() {
   const [issues, setIssues] = useState<CommunityIssue[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
   
   // Voting & Reporting state handling
   const [votingMap, setVotingMap] = useState<Record<string, boolean>>({});
@@ -281,7 +285,7 @@ export default function ProblemsAroundYouPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Priority:</span>
             <select
               value={selectedPriority}
@@ -294,10 +298,29 @@ export default function ProblemsAroundYouPage() {
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
+
+            <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === "list" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <List className="w-3.5 h-3.5" /> List
+              </button>
+              <button
+                onClick={() => setViewMode("map")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === "map" ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Map
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Issues List Feed */}
+        {/* Issues List / Map Feed */}
         {loading ? (
           <div className="py-20 text-center">
             <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -319,6 +342,25 @@ export default function ProblemsAroundYouPage() {
               Report an Issue Now
             </Link>
           </div>
+        ) : viewMode === "map" ? (
+          <LeafletMap
+            center={coords ? [coords.lat, coords.lon] : [28.6139, 77.209]}
+            zoom={11}
+            userLocation={coords ? [coords.lat, coords.lon] : null}
+            height="560px"
+            markers={filteredIssues.map((issue) => ({
+              id: issue.complaintId,
+              latitude: issue.location.latitude,
+              longitude: issue.location.longitude,
+              title: issue.summary || issue.description,
+              category: issue.category,
+              priority: issue.priority,
+              status: issue.status,
+              isMine: issue.isOwnIssue,
+              summary: `${issue.distanceKm} km away · 👍 ${issue.communitySupportCount} supports`,
+              imageUrl: issue.imageUrl
+            }))}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredIssues.map((issue) => (

@@ -15,7 +15,14 @@ class Settings(BaseSettings):
     CLOUDINARY_API_SECRET: Optional[str] = ""
     
     NOMINATIM_BASE_URL: str = "https://nominatim.openstreetmap.org"
-    
+
+    # Shared secret required to self-register an authority account. Role is
+    # never trusted from the client otherwise (see app/routers/auth.py).
+    AUTHORITY_INVITE_CODE: Optional[str] = ""
+
+    # Interval for the in-process SLA monitoring loop (see app/main.py lifespan).
+    SLA_MONITOR_INTERVAL_SECONDS: int = 900
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

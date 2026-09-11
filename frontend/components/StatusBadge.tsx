@@ -7,14 +7,18 @@ export function StatusBadge({ status }: { status: string }) {
     submitted: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
     in_progress: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
     escalated: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 animate-pulse font-semibold",
-    resolved: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+    resolved: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+    closed: "bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-300 dark:border-slate-700 font-semibold",
+    reopened: "bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-400 border-fuchsia-200 dark:border-fuchsia-800 animate-pulse font-semibold"
   };
 
   const labels: Record<string, string> = {
     submitted: "Submitted",
     in_progress: "In Progress",
     escalated: "🚨 Escalated",
-    resolved: "Resolved"
+    resolved: "Resolved",
+    closed: "✅ Closed",
+    reopened: "🔁 Reopened"
   };
 
   return (

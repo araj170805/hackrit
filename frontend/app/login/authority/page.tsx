@@ -20,7 +20,7 @@ export default function AuthorityLoginPage() {
     setLoading(true);
 
     try {
-      await loginWithEmail(email, password, "authority");
+      await loginWithEmail(email, password);
       router.push("/admin");
     } catch (err: any) {
       setError(err.message || "Failed to log in. Please check credentials.");
@@ -32,7 +32,7 @@ export default function AuthorityLoginPage() {
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      await loginWithGoogle("authority");
+      await loginWithGoogle();
       router.push("/admin");
     } catch (err: any) {
       setError(err.message || "Google sign in failed.");

@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
     name: str
     email: str
     role: Optional[str] = "citizen"
+    inviteCode: Optional[str] = None
 
 class ComplaintSubmitRequest(BaseModel):
     description: str
@@ -79,3 +80,18 @@ class NotificationSchema(BaseModel):
 class StatusUpdateRequest(BaseModel):
     status: str
     department: Optional[str] = None
+
+class ResolutionEvidenceSubmitRequest(BaseModel):
+    token: str
+    imageUrl: str
+    latitude: float
+    longitude: float
+    accuracy: float = 0.0
+    capturedAt: str  # device-reported ISO timestamp; server also records its own receipt time
+
+class ConfirmResolutionRequest(BaseModel):
+    action: str  # "confirm" | "reject" | "request_new"
+    note: Optional[str] = None
+
+class CitizenFeedbackRequest(BaseModel):
+    fixed: bool

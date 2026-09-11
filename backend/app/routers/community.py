@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from pydantic import BaseModel
 
-from app.firebase import verify_firebase_token
+from app.firebase import verify_firebase_token, require_role
 from app.database import (
     get_nearby_complaints_geo,
     get_complaint,
@@ -107,8 +107,8 @@ async def support_community_issue(
     - Unique vote constraint (1 user = 1 vote).
     """
     user_id = auth_payload.get("uid")
-    if not user_id or user_id == "demo-user-123":
-        user_id = auth_payload.get("uid", "demo-user-123")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     complaint = await get_complaint(issue_id)
     if not complaint:
@@ -195,7 +195,9 @@ async def report_community_issue(
     Enforces 1 report per citizen per issue.
     When report count >= 3, sets moderationStatus to UNDER_REVIEW.
     """
-    user_id = auth_payload.get("uid", "demo-user-123")
+    user_id = auth_payload.get("uid")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     complaint = await get_complaint(issue_id)
     if not complaint:
@@ -227,7 +229,7 @@ async def report_community_issue(
 
 @router.get("/reports")
 async def list_community_reports(
-    auth_payload: Dict[str, Any] = Depends(verify_firebase_token)
+    auth_payload: Dict[str, Any] = Depends(require_role("admin", "authority"))
 ):
     """
     Authority Command Center endpoint: Lists all flagged community reports needing moderation.
@@ -240,7 +242,7 @@ async def list_community_reports(
 async def update_issue_moderation_status(
     issue_id: str,
     payload: ModerationActionRequest,
-    auth_payload: Dict[str, Any] = Depends(verify_firebase_token)
+    auth_payload: Dict[str, Any] = Depends(require_role("admin", "authority"))
 ):
     """
     Authority Command Center endpoint: Updates moderation status (CONFIRMED, REJECTED, NORMAL).

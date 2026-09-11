@@ -23,9 +23,9 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   idToken: string | null;
   loading: boolean;
-  loginWithEmail: (e: string, p: string, role?: string) => Promise<void>;
-  loginWithGoogle: (role?: string) => Promise<void>;
-  registerUser: (name: string, e: string, p: string) => Promise<void>;
+  loginWithEmail: (e: string, p: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  registerUser: (name: string, e: string, p: string, inviteCode?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const syncBackendUser = async (u: User, role: string = "citizen") => {
+  const syncBackendUser = async (u: User, inviteCode?: string) => {
     try {
       const token = await u.getIdToken();
       setIdToken(token);
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           firebaseUid: u.uid,
           name: u.displayName || u.email?.split("@")[0] || "Citizen User",
           email: u.email || "",
-          role
+          inviteCode
         })
       });
       if (res.ok) {
@@ -91,19 +91,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const loginWithEmail = async (email: string, pass: string, role: string = "citizen") => {
+  const loginWithEmail = async (email: string, pass: string) => {
     const res = await signInWithEmailAndPassword(auth, email, pass);
-    await syncBackendUser(res.user, role);
-  };
-
-  const loginWithGoogle = async (role: string = "citizen") => {
-    const res = await signInWithPopup(auth, googleProvider);
-    await syncBackendUser(res.user, role);
-  };
-
-  const registerUser = async (name: string, email: string, pass: string) => {
-    const res = await createUserWithEmailAndPassword(auth, email, pass);
     await syncBackendUser(res.user);
+  };
+
+  const loginWithGoogle = async () => {
+    const res = await signInWithPopup(auth, googleProvider);
+    await syncBackendUser(res.user);
+  };
+
+  const registerUser = async (name: string, email: string, pass: string, inviteCode?: string) => {
+    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    await syncBackendUser(res.user, inviteCode);
   };
 
   const logout = async () => {
