@@ -32,7 +32,7 @@ async def sync_user(user_data: UserCreate, auth_payload: Dict[str, Any] = Depend
         "email": user_data.email,
         "role": role,
         "fcmTokens": existing.get("fcmTokens", []) if existing else [],
-        "createdAt": existing.get("createdAt") or user_data.dict().get("createdAt") or datetime.utcnow().isoformat()
+        "createdAt": (existing.get("createdAt") if existing else None) or datetime.utcnow().isoformat()
     }
 
     await save_user(user_dict)
@@ -62,7 +62,7 @@ async def sync_authority_user(user_data: UserCreate, auth_payload: Dict[str, Any
         "email": user_data.email,
         "role": role,
         "fcmTokens": existing.get("fcmTokens", []) if existing else [],
-        "createdAt": existing.get("createdAt") or user_data.dict().get("createdAt") or datetime.utcnow().isoformat()
+        "createdAt": (existing.get("createdAt") if existing else None) or datetime.utcnow().isoformat()
     }
 
     await save_user(user_dict)
