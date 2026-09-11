@@ -13,14 +13,18 @@ logger = logging.getLogger("civicfix.assistant")
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={key}"
 MAX_TOOL_ROUNDS = 3
 
 SYSTEM_PREAMBLE = (
-    "You are the CivicFix Assistant, helping citizens and civic authorities understand real civic issue data. "
-    "Always use the provided tools to look up real data before answering questions about issues, areas, or status — "
-    "never invent complaint IDs, counts, or statuses. If a question needs a location and none was given, ask for one "
-    "or use the user's provided context location. Keep answers concise (2-4 sentences)."
+    "You are the CivicFix Assistant, helping citizens and civic authorities. You handle two kinds of questions:\n"
+    "1. Questions about REAL data (issue status, counts, nearby problems, recurring issues, someone's own complaints) — "
+    "always use the provided tools to look this up, never invent complaint IDs, counts, statuses, or numbers. If the "
+    "question needs a location and none was given, ask for one or use the user's provided context location.\n"
+    "2. General civic knowledge questions (e.g. \"what is a pothole\", \"how does garbage overflow affect people\", "
+    "\"why does standing water cause dengue\", \"what does a broken streetlight have to do with safety\") — answer these "
+    "directly and simply from your own knowledge, no tool needed. Keep it practical and relevant to everyday civic life.\n"
+    "Keep every answer concise (2-4 sentences)."
 )
 
 
@@ -78,7 +82,7 @@ async def ask_assistant(payload: AssistantQuery, auth_payload: Dict[str, Any] = 
 
                 contents.append({"role": "model", "parts": parts})
                 contents.append({
-                    "role": "function",
+                    "role": "user",
                     "parts": [{"functionResponse": {"name": tool_name, "response": {"result": result}}}]
                 })
 

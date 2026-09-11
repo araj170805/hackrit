@@ -9,7 +9,7 @@ from app.config import settings
 
 logger = logging.getLogger("civicfix.gemini")
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={key}"
 MAX_IMAGE_FETCH_BYTES = 8 * 1024 * 1024
 
 
