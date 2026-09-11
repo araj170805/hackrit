@@ -47,6 +47,13 @@ class ComplaintSchema(BaseModel):
     affectedCitizens: int = 1
     impactRadius: int = 100
     slaHours: int = 72
+    communitySupportCount: int = 0
+    communityReportCount: int = 0
+    communitySignal: str = "LOW"  # LOW, MEDIUM, HIGH, VERY_HIGH
+    communitySignalScore: int = 0
+    finalPriorityScore: int = 1
+    moderationStatus: str = "NORMAL"  # NORMAL, UNDER_REVIEW, CONFIRMED, REJECTED
+    communityThresholdsTriggered: List[int] = []
     createdAt: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     deadline: str = ""
     escalated: bool = False

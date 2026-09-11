@@ -27,6 +27,10 @@ export function Navbar() {
 
         {/* Center Navigation Links */}
         <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-600">
+          <Link href="/problems-around-you" className="hover:text-emerald-700 transition-colors font-semibold text-emerald-600 flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5" />
+            Problems Around You
+          </Link>
           <a href="#how-it-works" className="hover:text-emerald-700 transition-colors">
             How It Works
           </a>

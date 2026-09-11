@@ -104,3 +104,32 @@ export async function triggerSlaMonitor() {
     method: "POST"
   });
 }
+
+export async function getNearbyCommunityIssues(lat: number, lon: number, radius = 50000) {
+  return apiFetch(`/api/community/issues/nearby?latitude=${lat}&longitude=${lon}&radius=${radius}`);
+}
+
+export async function supportCommunityIssue(issueId: string) {
+  return apiFetch(`/api/community/issues/${issueId}/support`, {
+    method: "POST"
+  });
+}
+
+export async function reportCommunityIssue(issueId: string, reason: string, description?: string) {
+  return apiFetch(`/api/community/issues/${issueId}/report`, {
+    method: "POST",
+    body: JSON.stringify({ reason, description })
+  });
+}
+
+export async function getCommunityReports() {
+  return apiFetch("/api/community/reports");
+}
+
+export async function updateModerationStatus(issueId: string, action: string) {
+  return apiFetch(`/api/community/issues/${issueId}/moderation`, {
+    method: "PATCH",
+    body: JSON.stringify({ action })
+  });
+}
+

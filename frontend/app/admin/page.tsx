@@ -366,6 +366,7 @@ export default function AdminDashboardPage() {
                 <th className="p-4">Case ID</th>
                 <th className="p-4">Category</th>
                 <th className="p-4">Priority</th>
+                <th className="p-4">Community Signal</th>
                 <th className="p-4">Impact</th>
                 <th className="p-4">Address</th>
                 <th className="p-4">Department</th>
@@ -404,6 +405,19 @@ export default function AdminDashboardPage() {
                         >
                           <HelpCircle className="w-3.5 h-3.5" />
                         </button>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                          c.communitySignal === "VERY_HIGH" ? "bg-rose-100 text-rose-800 border-rose-200" :
+                          c.communitySignal === "HIGH" ? "bg-amber-100 text-amber-800 border-amber-200" :
+                          c.communitySignal === "MEDIUM" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                          "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}>
+                          {c.communitySignal ? c.communitySignal.replace("_", " ") : "LOW"}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700">👍 {c.communitySupportCount || 0}</span>
                       </div>
                     </td>
                     <td className="p-4">
