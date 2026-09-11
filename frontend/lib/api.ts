@@ -1,0 +1,106 @@
+import { auth } from "@/lib/firebase";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+export async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  let token: string | null = null;
+  if (auth.currentUser) {
+    try {
+      token = await auth.currentUser.getIdToken();
+    } catch {
+      console.warn("Could not get Firebase ID token");
+    }
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options.headers as Record<string, string>) || {})
+  };
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error (${response.status}): ${errorText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`Fetch error for ${endpoint}:`, error);
+    throw error;
+  }
+}
+
+export async function submitComplaint(payload: any) {
+  return apiFetch("/api/complaints", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function uploadPhoto(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  
+  let token: string | null = null;
+  if (auth.currentUser) {
+    try {
+      token = await auth.currentUser.getIdToken();
+    } catch {
+      console.warn("Could not get Firebase token for upload");
+    }
+  }
+
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const response = await fetch(`${API_BASE_URL}/api/complaints/upload-photo`, {
+    method: "POST",
+    headers,
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to upload photo");
+  }
+
+  return await response.json();
+}
+
+export async function getComplaints(filters: Record<string, string> = {}) {
+  const params = new URLSearchParams(filters).toString();
+  return apiFetch(`/api/complaints${params ? `?${params}` : ""}`);
+}
+
+export async function getComplaintDetails(id: string) {
+  return apiFetch(`/api/complaints/${id}`);
+}
+
+export async function updateComplaintStatus(id: string, status: string, department?: string) {
+  return apiFetch(`/api/complaints/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, department })
+  });
+}
+
+export async function simulateSlaBreach(id: string) {
+  return apiFetch(`/api/monitor/simulate-breach/${id}`, {
+    method: "POST"
+  });
+}
+
+export async function getDashboardStats() {
+  return apiFetch("/api/dashboard/stats");
+}
+
+export async function triggerSlaMonitor() {
+  return apiFetch("/api/monitor/sla", {
+    method: "POST"
+  });
+}
