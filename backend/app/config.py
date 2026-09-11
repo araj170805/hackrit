@@ -3,16 +3,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 class Settings(BaseSettings):
-    GEMINI_API_KEY: str
-    MONGODB_URI: str = "mongodb://localhost:27017/civicfix"
+    GEMINI_API_KEY: Optional[str] = ""
+    MONGODB_URI: Optional[str] = "mongodb://localhost:27017/civicfix"
     
-    FIREBASE_PROJECT_ID: str
-    FIREBASE_CLIENT_EMAIL: str
-    FIREBASE_PRIVATE_KEY: str
+    FIREBASE_PROJECT_ID: Optional[str] = ""
+    FIREBASE_CLIENT_EMAIL: Optional[str] = ""
+    FIREBASE_PRIVATE_KEY: Optional[str] = ""
     
-    CLOUDINARY_CLOUD_NAME: str
-    CLOUDINARY_API_KEY: str
-    CLOUDINARY_API_SECRET: str
+    CLOUDINARY_CLOUD_NAME: Optional[str] = ""
+    CLOUDINARY_API_KEY: Optional[str] = ""
+    CLOUDINARY_API_SECRET: Optional[str] = ""
     
     NOMINATIM_BASE_URL: str = "https://nominatim.openstreetmap.org"
     
