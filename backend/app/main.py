@@ -45,3 +45,8 @@ async def root():
         "status": "online",
         "tagline": "From civic complaint to civic action."
     }
+
+@app.get("/api/health")
+async def health():
+    return {"status": "ok", "service": "civicfix-backend"}
+
