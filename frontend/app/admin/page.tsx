@@ -37,7 +37,8 @@ function DEPT_ICON(dept: string) {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
+  const isAuthority = userProfile?.role === "authority" || userProfile?.role === "admin";
   const [stats, setStats] = useState<any>(null);
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,8 +93,14 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login/authority");
+      return;
     }
-  }, [user, authLoading, router]);
+    // This is the authority console — a citizen account belongs on the
+    // citizen dashboard, not here, so it never sees authority-only features.
+    if (!authLoading && user && !isAuthority) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, isAuthority, router]);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -121,7 +128,7 @@ export default function AdminDashboardPage() {
     }
   }, [selectedCategory, selectedPriority, selectedStatus, user]);
 
-  if (authLoading || !user) {
+  if (authLoading || !user || !isAuthority) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="w-8 h-8 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>

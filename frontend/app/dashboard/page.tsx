@@ -26,19 +26,26 @@ function getDistanceKM(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 export default function CitizenDashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const [complaints, setComplaints] = useState<any[]>([]);
   const [allComplaints, setAllComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const isAuthority = userProfile?.role === "authority" || userProfile?.role === "admin";
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login/citizen");
+      return;
     }
-  }, [user, authLoading, router]);
+    // This is the citizen dashboard — an authority account belongs on the
+    // authority console, not here, so it never sees citizen-only features.
+    if (!authLoading && user && isAuthority) {
+      router.push("/admin");
+    }
+  }, [user, authLoading, isAuthority, router]);
 
   const detectLocation = () => {
     setLocationDenied(false);
@@ -73,7 +80,7 @@ export default function CitizenDashboardPage() {
     }
   }, [user]);
 
-  if (authLoading || !user) {
+  if (authLoading || !user || isAuthority) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="w-8 h-8 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>
