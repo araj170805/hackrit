@@ -12,6 +12,7 @@ import { AgentVisualizer, AgentStep } from "@/components/AgentVisualizer";
 import { LeafletMap } from "@/components/LeafletMap";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { getCurrentLocation } from "@/lib/geolocation";
 
 // ── Utility: rough local AI preview (mirrors backend heuristics) ───────────
 function localPreview(desc: string) {
@@ -143,24 +144,12 @@ export default function ReportProblemPage() {
 
   // ── GPS ─────────────────────────────────────────────────────────────────
   const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setLocError("Geolocation is not supported by your browser.");
-      return;
-    }
     setLocLoading(true);
     setLocError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy || 10 });
-        setLocLoading(false);
-      },
-      () => {
-        setLocLoading(false);
-        setLocError("Location permission denied. Using default coordinates for demonstration.");
-        setLocation({ latitude: 22.2505, longitude: 84.9011, accuracy: 15 });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+    getCurrentLocation()
+      .then((loc) => setLocation(loc))
+      .catch((err) => setLocError(err.message || "Could not determine your location. You can set it manually on the map below."))
+      .finally(() => setLocLoading(false));
   };
 
   useEffect(() => { handleGetLocation(); }, []);

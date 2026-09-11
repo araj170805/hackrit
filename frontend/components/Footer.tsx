@@ -33,6 +33,13 @@ export function Footer() {
 
         <div className="pt-6 border-t border-line flex flex-col sm:flex-row items-center justify-between text-[12px] gap-3">
           <p>&copy; {new Date().getFullYear()} CivicFix</p>
+          <p className="flex items-center gap-1.5">
+            Made with
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-red-500">
+              <path d="M12 21s-7.5-4.7-10.2-9.3C-0.1 7.9 1.8 4 5.6 4c2 0 3.6 1.1 4.4 2.7C10.8 5.1 12.4 4 14.4 4c3.8 0 5.7 3.9 3.8 7.7C19.5 16.3 12 21 12 21z" />
+            </svg>
+            by DeltaX
+          </p>
         </div>
       </div>
     </footer>

@@ -129,6 +129,18 @@ export async function getResourceRecommendation(id: string) {
   return apiFetch(`/api/complaints/${id}/resource-recommendation`);
 }
 
+export async function getAreaResourceRecommendation(area: string) {
+  return apiFetch(`/api/authority/resource-recommendation?area=${encodeURIComponent(area)}`);
+}
+
+export async function getRecurringIssues() {
+  return apiFetch("/api/authority/recurring-issues");
+}
+
+export async function getAreaAnalytics() {
+  return apiFetch("/api/authority/area-analytics");
+}
+
 export async function askAssistant(message: string, latitude?: number, longitude?: number) {
   return apiFetch("/api/assistant/ask", {
     method: "POST",

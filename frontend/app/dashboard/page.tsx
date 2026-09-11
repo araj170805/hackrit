@@ -9,6 +9,9 @@ import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { LeafletMap } from "@/components/LeafletMap";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
+import { getCurrentLocation } from "@/lib/geolocation";
+
+const DEFAULT_LOCATION: [number, number] = [22.2505, 84.9011];
 
 function getDistanceKM(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371;
@@ -28,6 +31,7 @@ export default function CitizenDashboardPage() {
   const [allComplaints, setAllComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   useEffect(() => {
@@ -36,13 +40,17 @@ export default function CitizenDashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-      () => setUserLocation([22.2505, 84.9011]),
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
-  }, []);
+  const detectLocation = () => {
+    setLocationDenied(false);
+    getCurrentLocation()
+      .then((loc) => setUserLocation([loc.latitude, loc.longitude]))
+      .catch(() => {
+        setLocationDenied(true);
+        setUserLocation(DEFAULT_LOCATION);
+      });
+  };
+
+  useEffect(() => { detectLocation(); }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -75,15 +83,15 @@ export default function CitizenDashboardPage() {
 
   const filteredCityComplaints = allComplaints.filter(c => {
     if (!userLocation) return true;
-    const lat = c.location?.latitude || 22.2505;
-    const lon = c.location?.longitude || 84.9011;
+    const lat = c.location?.latitude ?? DEFAULT_LOCATION[0];
+    const lon = c.location?.longitude ?? DEFAULT_LOCATION[1];
     return getDistanceKM(userLocation[0], userLocation[1], lat, lon) <= 20;
   });
 
   const mapMarkers = filteredCityComplaints.map(c => ({
     id: c.complaintId,
-    latitude: c.location?.latitude || 22.2505,
-    longitude: c.location?.longitude || 84.9011,
+    latitude: c.location?.latitude ?? DEFAULT_LOCATION[0],
+    longitude: c.location?.longitude ?? DEFAULT_LOCATION[1],
     title: `${c.complaintId}: ${c.category?.replace(/_/g, " ")}`,
     category: c.category,
     priority: c.priority,
@@ -131,7 +139,7 @@ export default function CitizenDashboardPage() {
             <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900">
               {filteredCityComplaints.length} Active City Issues
             </span>
-            <button 
+            <button
               onClick={() => setIsMapFullscreen(true)}
               className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
               title="Open Full View Map"
@@ -140,8 +148,14 @@ export default function CitizenDashboardPage() {
             </button>
           </div>
         </div>
+        {locationDenied && (
+          <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300">
+            <span>Couldn't get your real location, showing a default area instead.</span>
+            <button onClick={detectLocation} className="font-semibold underline shrink-0">Retry</button>
+          </div>
+        )}
         <div className="h-[400px]">
-          <LeafletMap center={userLocation || [22.2505, 84.9011]} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
+          <LeafletMap center={userLocation || DEFAULT_LOCATION} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
         </div>
       </div>
 
@@ -164,7 +178,7 @@ export default function CitizenDashboardPage() {
             </button>
           </div>
           <div className="flex-1 w-full relative">
-            <LeafletMap center={userLocation || [22.2505, 84.9011]} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
+            <LeafletMap center={userLocation || DEFAULT_LOCATION} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
           </div>
         </div>
       )}

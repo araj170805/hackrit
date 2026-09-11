@@ -57,6 +57,14 @@ body {
   animation: pulseGlow 4s infinite ease-in-out;
 }
 
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-thin::-webkit-scrollbar { width: 4px; }

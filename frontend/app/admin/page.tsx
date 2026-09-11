@@ -4,13 +4,17 @@ import React, { useEffect, useState } from "react";
 import {
   Shield, Activity, AlertTriangle, CheckCircle2, Users, MapPin,
   RefreshCw, Filter, Clock, Building, ChevronRight, Zap,
-  TrendingUp, X, BarChart3, HelpCircle, Maximize2, Minimize2
+  TrendingUp, X, BarChart3, HelpCircle, Maximize2, Minimize2,
+  ListChecks, Map as MapIcon2, RotateCcw
 } from "lucide-react";
-import { getDashboardStats, getComplaints, updateComplaintStatus, simulateSlaBreach } from "@/lib/api";
+import { getDashboardStats, getComplaints, updateComplaintStatus, simulateSlaBreach, getAreaAnalytics, getRecurringIssues } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { LeafletMap } from "@/components/LeafletMap";
+import { getCurrentLocation } from "@/lib/geolocation";
+
+const DEFAULT_LOCATION: [number, number] = [22.2505, 84.9011];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const IMPACT_BAR = (score: number) =>
@@ -54,16 +58,35 @@ export default function AdminDashboardPage() {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
+  // Screens: each authority "problem" lives on its own screen, fetched only
+  // when opened.
+  const [screen, setScreen] = useState<"queue" | "analytics" | "recurring">("queue");
+  const [areaStats, setAreaStats] = useState<any[] | null>(null);
+  const [areaLoading, setAreaLoading] = useState(false);
+  const [recurringIssues, setRecurringIssues] = useState<any[] | null>(null);
+  const [recurringLoading, setRecurringLoading] = useState(false);
+
   useEffect(() => {
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
-        () => setUserLocation([22.2505, 84.9011]),
-        { enableHighAccuracy: false, timeout: 15000 }
-      );
-    } else {
-      setUserLocation([22.2505, 84.9011]);
+    if (screen === "analytics" && areaStats === null) {
+      setAreaLoading(true);
+      getAreaAnalytics()
+        .then((res) => setAreaStats(res.areas || []))
+        .catch(() => setAreaStats([]))
+        .finally(() => setAreaLoading(false));
     }
+    if (screen === "recurring" && recurringIssues === null) {
+      setRecurringLoading(true);
+      getRecurringIssues()
+        .then((res) => setRecurringIssues(res || []))
+        .catch(() => setRecurringIssues([]))
+        .finally(() => setRecurringLoading(false));
+    }
+  }, [screen, areaStats, recurringIssues]);
+
+  useEffect(() => {
+    getCurrentLocation()
+      .then((loc) => setUserLocation([loc.latitude, loc.longitude]))
+      .catch(() => setUserLocation(DEFAULT_LOCATION));
   }, []);
 
   useEffect(() => {
@@ -137,8 +160,8 @@ export default function AdminDashboardPage() {
 
   const mapMarkers = complaints.map(c => ({
     id: c.complaintId,
-    latitude: c.location?.latitude || 22.2505,
-    longitude: c.location?.longitude || 84.9011,
+    latitude: c.location?.latitude ?? DEFAULT_LOCATION[0],
+    longitude: c.location?.longitude ?? DEFAULT_LOCATION[1],
     title: `${c.complaintId}: ${c.category?.replace("_", " ")}`,
     category: c.category,
     priority: c.priority,
@@ -176,6 +199,28 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
+      {/* Screen tabs — each authority "problem" is its own screen */}
+      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit">
+        {[
+          { key: "queue" as const, label: "Priority Queue", icon: ListChecks },
+          { key: "analytics" as const, label: "Area Analytics", icon: BarChart3 },
+          { key: "recurring" as const, label: "Recurring Issues", icon: RotateCcw }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setScreen(tab.key)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
+              screen === tab.key
+                ? "bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <tab.icon className="w-3.5 h-3.5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Action Banner */}
       {actionMessage && (
         <div className={`p-3.5 rounded-xl text-xs font-medium flex items-center justify-between border ${
@@ -190,6 +235,8 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {screen === "queue" && (
+      <>
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
@@ -278,7 +325,7 @@ export default function AdminDashboardPage() {
             </button>
           </div>
           <div className="flex-1 w-full relative">
-            <LeafletMap center={userLocation || [22.2505, 84.9011]} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
+            <LeafletMap center={userLocation || DEFAULT_LOCATION} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
           </div>
         </div>
       ) : (
@@ -299,7 +346,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="h-[400px]">
-            <LeafletMap center={userLocation || [22.2505, 84.9011]} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
+            <LeafletMap center={userLocation || DEFAULT_LOCATION} zoom={13} markers={mapMarkers} height="100%" userLocation={userLocation} />
           </div>
         </div>
       )}
@@ -506,6 +553,76 @@ export default function AdminDashboardPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      </>
+      )}
+
+      {screen === "analytics" && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-5">
+          <div>
+            <h3 className="font-bold text-base text-slate-900 dark:text-white">Area analytics</h3>
+            <p className="text-xs text-slate-500 mt-1">Real issue counts by area, computed from open reports.</p>
+          </div>
+          {areaLoading ? (
+            <div className="py-16 text-center text-slate-400 text-xs">Loading area analytics&hellip;</div>
+          ) : !areaStats || areaStats.length === 0 ? (
+            <div className="py-16 text-center text-slate-400 text-xs">No area data available yet.</div>
+          ) : (
+            <div className="space-y-3 max-w-2xl">
+              {areaStats.map((a: any) => {
+                const max = Math.max(...areaStats.map((x: any) => x.total), 1);
+                return (
+                  <div key={a.area} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{a.area}</span>
+                      <span className="text-xs text-slate-500 font-semibold">{a.total} open{a.criticalCount > 0 ? ` · ${a.criticalCount} critical` : ""}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(a.total / max) * 100}%` }} />
+                    </div>
+                    {a.byCategory && (
+                      <div className="flex flex-wrap gap-1.5 mt-2.5">
+                        {Object.entries(a.byCategory as Record<string, number>).map(([cat, count]) => (
+                          <span key={cat} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 capitalize">
+                            {cat.replace(/_/g, " ")}: {count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {screen === "recurring" && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-5">
+          <div>
+            <h3 className="font-bold text-base text-slate-900 dark:text-white">Recurring issues</h3>
+            <p className="text-xs text-slate-500 mt-1">Problems that came back after being marked resolved.</p>
+          </div>
+          {recurringLoading ? (
+            <div className="py-16 text-center text-slate-400 text-xs">Loading recurring issues&hellip;</div>
+          ) : !recurringIssues || recurringIssues.length === 0 ? (
+            <div className="py-16 text-center text-slate-400 text-xs">No recurring issues detected yet.</div>
+          ) : (
+            <div className="space-y-3 max-w-2xl">
+              {recurringIssues.map((c: any) => (
+                <div key={c.complaintId} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white capitalize">{c.category?.replace(/_/g, " ")} &mdash; {c.area || c.address}</div>
+                    <div className="text-xs text-slate-500 mt-1">{c.complaintId} &middot; recurred {c.recurrenceCount}&times;{c.lastRecurrenceAt ? ` · last ${new Date(c.lastRecurrenceAt).toLocaleDateString()}` : ""}</div>
+                  </div>
+                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 border border-rose-200 shrink-0">
+                    {c.recurrenceCount >= 2 ? "High confidence" : "Recurring"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

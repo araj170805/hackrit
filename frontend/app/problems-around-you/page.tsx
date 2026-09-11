@@ -19,6 +19,7 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { LeafletMap } from "@/components/LeafletMap";
 import { getNearbyCommunityIssues, supportCommunityIssue, reportCommunityIssue } from "@/lib/api";
+import { getCurrentLocation } from "@/lib/geolocation";
 import { useAuth } from "@/context/AuthContext";
 
 interface CommunityIssue {
@@ -81,29 +82,20 @@ export default function ProblemsAroundYouPage() {
     setLoading(true);
     setLocationDenied(false);
 
-    if (typeof window !== "undefined" && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          setCoords({ lat, lon });
-          fetchNearby(lat, lon);
-        },
-        (error) => {
-          console.warn("Location permission denied or unavailable:", error);
-          setLocationDenied(true);
-          // Default fallback (New Delhi coordinates if location denied)
-          const fallbackLat = 28.6139;
-          const fallbackLon = 77.2090;
-          setCoords({ lat: fallbackLat, lon: fallbackLon });
-          fetchNearby(fallbackLat, fallbackLon);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      setLocationDenied(true);
-      setLoading(false);
-    }
+    getCurrentLocation()
+      .then((loc) => {
+        setCoords({ lat: loc.latitude, lon: loc.longitude });
+        fetchNearby(loc.latitude, loc.longitude);
+      })
+      .catch((err) => {
+        console.warn("Location unavailable:", err);
+        setLocationDenied(true);
+        // Default fallback (New Delhi) only when location is genuinely unavailable.
+        const fallbackLat = 28.6139;
+        const fallbackLon = 77.2090;
+        setCoords({ lat: fallbackLat, lon: fallbackLon });
+        fetchNearby(fallbackLat, fallbackLon);
+      });
   };
 
   const fetchNearby = async (lat: number, lon: number) => {
