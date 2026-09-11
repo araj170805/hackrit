@@ -3,7 +3,31 @@
 
 @theme {
   --font-serif: var(--font-serif), Newsreader, Georgia, serif;
-  --font-sans: var(--font-sans), Inter, system-ui, sans-serif;
+  --font-sans: var(--font-sans), "IBM Plex Sans", system-ui, sans-serif;
+
+  /* Minimal, single-accent-per-role design system. Citizen surfaces use the
+     teal accent, authority surfaces use the indigo accent; neutrals are
+     shared. Keep new UI to these tokens rather than introducing new hues. */
+  --color-ink: oklch(19% 0.012 260);
+  --color-muted: oklch(45% 0.016 260);
+  --color-line: oklch(90% 0.006 95);
+  --color-surface: oklch(100% 0 0);
+  --color-canvas: oklch(98% 0.004 95);
+
+  --color-citizen: oklch(56% 0.11 165);
+  --color-citizen-soft: oklch(95% 0.028 165);
+  --color-citizen-ink: oklch(28% 0.06 165);
+
+  --color-authority: oklch(40% 0.075 265);
+  --color-authority-soft: oklch(93% 0.02 265);
+  --color-authority-ink: oklch(26% 0.05 265);
+
+  --color-crit: oklch(52% 0.16 25);
+  --color-crit-soft: oklch(94% 0.03 25);
+  --color-high: oklch(62% 0.13 55);
+  --color-high-soft: oklch(94% 0.035 60);
+  --color-med: oklch(48% 0.1 75);
+  --color-med-soft: oklch(95% 0.03 95);
 }
 
 :root {

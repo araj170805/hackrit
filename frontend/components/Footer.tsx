@@ -1,51 +1,38 @@
 import React from "react";
 import Link from "next/link";
-import { Shield, Sparkles, MapPin, Zap } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-12 text-slate-600 dark:text-slate-400">
+    <footer className="border-t border-line bg-surface py-10 text-muted">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          
-          <div className="space-y-3 md:col-span-2">
-            <div className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-                <Shield className="w-4 h-4" />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+
+          <div className="space-y-2.5 md:col-span-2">
+            <div className="flex items-center gap-2 font-bold text-sm text-ink">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               CivicFix
             </div>
-            <p className="text-sm text-slate-500 max-w-sm">
-              Geo-aware autonomous AI civic issue resolution platform. Empowering citizens and streamlining civic authority action through intelligent agentic workflows.
+            <p className="text-[13px] max-w-sm leading-relaxed">
+              Report civic issues, track them to resolution, and confirm the fix actually worked &mdash; for citizens and authorities alike.
             </p>
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white mb-3">Platform</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/report" className="hover:text-blue-600 transition-colors">Report a Problem</Link></li>
-              <li><Link href="/dashboard" className="hover:text-blue-600 transition-colors">Citizen Dashboard</Link></li>
-              <li><Link href="/admin" className="hover:text-blue-600 transition-colors">Admin Command Center</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-white mb-3">Architecture</h4>
-            <ul className="space-y-2 text-sm text-slate-500">
-              <li className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-blue-500" /> Gemini & LangGraph</li>
-              <li className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-indigo-500" /> OpenStreetMap & Nominatim</li>
-              <li className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> Autonomous SLA Escalation</li>
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-ink mb-3">Platform</h4>
+            <ul className="space-y-2 text-[13px]">
+              <li><Link href="/report" className="hover:text-ink transition-colors">Report a problem</Link></li>
+              <li><Link href="/dashboard" className="hover:text-ink transition-colors">Citizen dashboard</Link></li>
+              <li><Link href="/admin" className="hover:text-ink transition-colors">Authority console</Link></li>
             </ul>
           </div>
 
         </div>
 
-        <div className="pt-8 border-t border-slate-200 dark:border-slate-800/60 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} CivicFix. From civic complaint to civic action.</p>
-          <p className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-            Agent Systems Operational
-          </p>
+        <div className="pt-6 border-t border-line flex flex-col sm:flex-row items-center justify-between text-[12px] gap-3">
+          <p>&copy; {new Date().getFullYear()} CivicFix</p>
         </div>
       </div>
     </footer>
