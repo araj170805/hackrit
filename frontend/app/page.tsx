@@ -61,7 +61,7 @@ export default function LandingPage() {
     <div className="bg-canvas text-ink font-sans">
 
       {/* Hero */}
-      <section className="relative z-0 overflow-hidden min-h-[90vh] flex flex-col items-center justify-center pt-24 pb-80 text-center bg-canvas">
+      <section className="relative z-0 overflow-hidden min-h-[90vh] flex flex-col items-center justify-center pt-24 pb-48 text-center bg-canvas">
         <div className="relative z-20 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
           
           {/* Top Indicator Pill */}
@@ -78,21 +78,21 @@ export default function LandingPage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-muted text-base sm:text-[17px] leading-relaxed max-w-lg mb-12 opacity-0 animate-fade-up" style={{ animationDelay: "200ms" }}>
+          <p className="text-muted text-base sm:text-[17px] leading-relaxed max-w-lg mb-10 opacity-0 animate-fade-up" style={{ animationDelay: "200ms" }}>
             A lively and optimistic approach to civic reporting, combining AI dispatch with community verification.
           </p>
 
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 opacity-0 animate-fade-up" style={{ animationDelay: "300ms" }}>
+          <div className="flex flex-col sm:flex-row items-center gap-4 opacity-0 animate-fade-up bg-canvas/40 p-2 rounded-full backdrop-blur-md shadow-2xl shadow-canvas/50 border border-white/50" style={{ animationDelay: "300ms" }}>
             <Link
               href="/get-started"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-[14.5px] font-medium text-white bg-ink hover:bg-ink/90 transition-all shadow-xl shadow-ink/20"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-[14.5px] font-medium text-white bg-ink hover:bg-ink/90 transition-all shadow-lg shadow-ink/20"
             >
               Get Started <span className="text-[16px] font-light">&rarr;</span>
             </Link>
             <Link
               href="/problems-around-you"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-[14.5px] font-medium text-ink bg-white hover:bg-slate-50 border border-line transition-all shadow-md"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-[14.5px] font-medium text-ink bg-white hover:bg-slate-50 border border-line transition-all shadow-lg shadow-ink/5"
             >
               <Sparkles className="w-4 h-4 text-citizen" /> View Live City Map
             </Link>
