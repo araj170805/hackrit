@@ -15,14 +15,18 @@ import { useAuth } from "@/context/AuthContext";
 import { getCurrentLocation } from "@/lib/geolocation";
 
 // ── Utility: rough local AI preview (mirrors backend heuristics) ───────────
+// Checks the most specific categories first; "road"/"pit" were dropped from
+// the pothole trigger because they're generic words that show up in almost
+// any location description, which was causing every complaint to preview as
+// a pothole regardless of what was actually described.
 function localPreview(desc: string) {
   const d = desc.toLowerCase();
   let category = "general_civic";
-  if (/pothole|road|asphalt|crater|tarmac|pit|hole in road/.test(d)) category = "pothole";
-  else if (/garbage|trash|waste|dump|litter|bin|rubbish/.test(d)) category = "garbage";
+  if (/garbage|trash|waste|dump|litter|bin|rubbish/.test(d)) category = "garbage";
   else if (/light|lamp|street light|dark|bulb/.test(d)) category = "broken_streetlight";
   else if (/water|leak|pipe|drain|burst|sewage|overflow/.test(d)) category = "water_leakage";
   else if (/paper|document|sheet|note|receipt|letter/.test(d)) category = "general_civic";
+  else if (/pothole|asphalt|crater|tarmac|hole in( the)? road/.test(d)) category = "pothole";
 
   let severity = "medium";
   if (/danger|accident|crash|huge|severe|urgent|emergency|hazardous|overflowing|collapsed/.test(d))

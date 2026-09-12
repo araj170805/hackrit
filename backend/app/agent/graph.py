@@ -69,13 +69,15 @@ async def run_gemini_analysis(description: str, image_url: Optional[str] = None)
     if parsed is not None:
         return parsed
 
-    # Resilient local NLU fallback
+    # Resilient local NLU fallback. Checks the most specific categories first;
+    # "road"/"pit" were dropped from the pothole trigger list because they're
+    # generic words that show up in almost any location description ("near
+    # the road", "garbage pit"), which was causing every complaint to get
+    # misclassified as a pothole regardless of what was actually reported.
     desc_lower = (description + " " + (image_url or "")).lower()
     cat = "general_civic"
-    
-    if any(k in desc_lower for k in ["pothole", "road", "asphalt", "crater", "tarmac", "pit", "hole in road"]):
-        cat = "pothole"
-    elif any(k in desc_lower for k in ["garbage", "trash", "waste", "dump", "bin", "litter", "rubbish"]):
+
+    if any(k in desc_lower for k in ["garbage", "trash", "waste", "dump", "bin", "litter", "rubbish"]):
         cat = "garbage"
     elif any(k in desc_lower for k in ["light", "lamp", "dark", "street light", "bulb"]):
         cat = "broken_streetlight"
@@ -83,6 +85,8 @@ async def run_gemini_analysis(description: str, image_url: Optional[str] = None)
         cat = "water_leakage"
     elif any(k in desc_lower for k in ["paper", "document", "sheet", "note", "receipt", "letter"]):
         cat = "general_civic"
+    elif any(k in desc_lower for k in ["pothole", "asphalt", "crater", "tarmac", "hole in road", "hole in the road"]):
+        cat = "pothole"
 
     sev = "medium"
     if any(word in desc_lower for word in ["danger", "accident", "crash", "huge", "severe", "urgent", "burst", "emergency", "gate", "hazardous"]):
