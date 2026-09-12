@@ -7,7 +7,7 @@ import {
   TrendingUp, X, BarChart3, HelpCircle, Maximize2, Minimize2,
   ListChecks, Map as MapIcon2, RotateCcw
 } from "lucide-react";
-import { getDashboardStats, getComplaints, updateComplaintStatus, simulateSlaBreach, getAreaAnalytics, getRecurringIssues } from "@/lib/api";
+import { getDashboardStats, getComplaints, updateComplaintStatus, simulateSlaBreach, getAreaAnalytics, getRecurringIssues, uploadPhoto } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
@@ -55,6 +55,9 @@ export default function AdminDashboardPage() {
   const [actionMessage, setActionMessage] = useState("");
   const [actionType, setActionType] = useState<"info" | "success" | "error">("info");
   const [priorityPopup, setPriorityPopup] = useState<string | null>(null); // complaintId
+
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -153,9 +156,32 @@ export default function AdminDashboardPage() {
   const handleUpdateStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingComplaint) return;
+    
+    let resolutionImageUrl = undefined;
+    
+    if (newStatus === "resolved") {
+      if (!proofFile) {
+        setActionType("error");
+        setActionMessage("Photographic proof is required to resolve a complaint.");
+        return;
+      }
+      setIsUploading(true);
+      try {
+        const uploadRes = await uploadPhoto(proofFile);
+        resolutionImageUrl = uploadRes.imageUrl;
+      } catch (err: any) {
+        setIsUploading(false);
+        setActionType("error");
+        setActionMessage(`Upload failed: ${err.message}`);
+        return;
+      }
+      setIsUploading(false);
+    }
+
     try {
-      await updateComplaintStatus(editingComplaint.complaintId, newStatus, newDept);
+      await updateComplaintStatus(editingComplaint.complaintId, newStatus, newDept, resolutionImageUrl);
       setEditingComplaint(null);
+      setProofFile(null);
       setActionType("success");
       setActionMessage(`✅ Case ${editingComplaint.complaintId} updated to ${newStatus.toUpperCase()}.`);
       await loadDashboardData();
@@ -183,31 +209,31 @@ export default function AdminDashboardPage() {
     : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 bg-canvas min-h-screen">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-line">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-1">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-authority mb-2">
             <Shield className="w-4 h-4" />
             Civic Authority Command Center
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-4xl font-serif-title text-ink tracking-tight">
             Municipal Operations Dashboard
           </h1>
         </div>
         <button
           onClick={loadDashboardData}
           id="admin-refresh-btn"
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-line text-ink text-xs font-semibold hover:bg-canvas transition-colors shadow-sm"
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 text-authority ${loading ? "animate-spin" : ""}`} />
           Refresh Live Stream
         </button>
       </div>
 
       {/* Screen tabs — each authority "problem" is its own screen */}
-      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit">
+      <div className="flex items-center gap-2 bg-white border border-line p-1.5 rounded-full w-fit shadow-sm">
         {[
           { key: "queue" as const, label: "Priority Queue", icon: ListChecks },
           { key: "analytics" as const, label: "Area Analytics", icon: BarChart3 },
@@ -216,10 +242,10 @@ export default function AdminDashboardPage() {
           <button
             key={tab.key}
             onClick={() => setScreen(tab.key)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all ${
               screen === tab.key
-                ? "bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-sm"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                ? "bg-authority text-white shadow-md"
+                : "text-muted hover:text-ink hover:bg-canvas"
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -253,12 +279,12 @@ export default function AdminDashboardPage() {
           { label: "Resolved", value: stats?.resolved ?? 0, icon: <CheckCircle2 className="w-4 h-4 text-emerald-500" />, color: "text-emerald-600 dark:text-emerald-400" },
           { label: "Citizens Affected", value: stats?.citizensAffected ?? 0, icon: <Users className="w-4 h-4 text-indigo-500" />, color: "text-indigo-600 dark:text-indigo-400" }
         ].map((kpi, i) => (
-          <div key={i} className={`bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 ${i === 4 ? "col-span-2 lg:col-span-1" : ""}`}>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+          <div key={i} className={`bg-white p-6 rounded-3xl border border-line shadow-sm space-y-3 ${i === 4 ? "col-span-2 lg:col-span-1" : ""}`}>
+            <div className="flex items-center justify-between text-sm font-semibold text-muted">
               {kpi.label}
               {kpi.icon}
             </div>
-            <div className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
+            <div className={`text-4xl font-serif-title ${kpi.color}`}>{kpi.value}</div>
           </div>
         ))}
       </div>
@@ -274,25 +300,25 @@ export default function AdminDashboardPage() {
             {deptBreakdown.map(([dept, ds]: [string, any]) => {
               const resolvedPct = ds.total > 0 ? Math.round((ds.resolved / ds.total) * 100) : 0;
               return (
-                <div key={dept} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <div key={dept} className="bg-white rounded-3xl border border-line shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                   <div className={`h-1.5 bg-gradient-to-r ${DEPT_COLOR[dept] || "from-slate-400 to-slate-500"}`} />
                   <div className="p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{DEPT_ICON(dept)}</span>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{dept}</p>
+                      <p className="text-sm font-bold text-ink leading-tight">{dept}</p>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <p className="text-lg font-black text-slate-900 dark:text-white">{ds.total}</p>
-                        <p className="text-[10px] text-slate-500 font-medium">Total</p>
+                        <p className="text-xl font-serif-title text-ink">{ds.total}</p>
+                        <p className="text-[10px] text-muted font-medium uppercase tracking-wider">Total</p>
                       </div>
                       <div>
-                        <p className="text-lg font-black text-amber-600">{ds.active}</p>
-                        <p className="text-[10px] text-slate-500 font-medium">Active</p>
+                        <p className="text-xl font-serif-title text-amber-600">{ds.active}</p>
+                        <p className="text-[10px] text-muted font-medium uppercase tracking-wider">Active</p>
                       </div>
                       <div>
-                        <p className="text-lg font-black text-rose-600">{ds.slaBreached}</p>
-                        <p className="text-[10px] text-slate-500 font-medium">Breached</p>
+                        <p className="text-xl font-serif-title text-rose-600">{ds.slaBreached}</p>
+                        <p className="text-[10px] text-muted font-medium uppercase tracking-wider">Breached</p>
                       </div>
                     </div>
                     {/* Resolution progress bar */}
@@ -315,20 +341,20 @@ export default function AdminDashboardPage() {
 
       {/* GIS Map */}
       {isMapExpanded ? (
-        <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col">
-          <div className="p-4 flex items-center justify-between bg-slate-900 border-b border-slate-800 text-white shadow-xl">
+        <div className="fixed inset-0 z-[100] bg-canvas flex flex-col">
+          <div className="p-6 flex items-center justify-between bg-white border-b border-line shadow-sm">
             <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-blue-400" />
+              <h2 className="text-2xl font-serif-title text-ink flex items-center gap-3">
+                <MapPin className="w-6 h-6 text-authority" />
                 Live Civic Issues Map
               </h2>
-              <p className="text-xs text-slate-400 mt-1">{mapMarkers.length} complaints plotted globally</p>
+              <p className="text-sm text-muted mt-1">{mapMarkers.length} complaints plotted globally</p>
             </div>
             <button 
               onClick={() => setIsMapExpanded(false)}
-              className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
+              className="p-3 bg-canvas hover:bg-line rounded-2xl text-ink transition-colors"
             >
-              <Minimize2 className="w-5 h-5" />
+              <Minimize2 className="w-6 h-6" />
             </button>
           </div>
           <div className="flex-1 w-full relative">
@@ -336,10 +362,10 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="bg-white rounded-3xl p-8 border border-line shadow-sm space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-blue-600" />
+            <h3 className="font-serif-title text-2xl text-ink flex items-center gap-3">
+              <MapPin className="w-6 h-6 text-authority" />
               Live Civic Issues GIS Map
             </h3>
             <div className="flex items-center gap-3">
@@ -359,8 +385,8 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center gap-4 text-xs font-medium">
-        <div className="flex items-center gap-1.5 text-slate-500">
+      <div className="bg-white p-4 rounded-full border border-line shadow-sm flex flex-wrap items-center gap-4 text-xs font-medium">
+        <div className="flex items-center gap-2 text-muted ml-2">
           <Filter className="w-4 h-4" />
           Filters:
         </div>
@@ -370,7 +396,7 @@ export default function AdminDashboardPage() {
           { value: selectedStatus, setter: setSelectedStatus, options: [["all","All Statuses"],["submitted","Submitted"],["in_progress","In Progress"],["escalated","Escalated"],["resolved","Resolved"]] }
         ].map((f, i) => (
           <select key={i} value={f.value} onChange={e => f.setter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
+            className="px-4 py-2 rounded-full border border-line bg-canvas text-ink focus:ring-2 focus:ring-authority/20 focus:border-authority outline-none transition-all cursor-pointer hover:bg-white hover:border-authority/50">
             {f.options.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
           </select>
         ))}
@@ -381,25 +407,25 @@ export default function AdminDashboardPage() {
         const c = complaints.find(x => x.complaintId === priorityPopup);
         if (!c) return null;
         return (
-          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPriorityPopup(null)}>
-            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPriorityPopup(null)}>
+            <div className="bg-white rounded-3xl max-w-md w-full p-8 border border-line shadow-2xl space-y-6" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-blue-600" />
+                <h3 className="font-serif-title text-xl text-ink flex items-center gap-3">
+                  <HelpCircle className="w-6 h-6 text-authority" />
                   Why {c.priority} Priority?
                 </h3>
-                <button onClick={() => setPriorityPopup(null)}><X className="w-5 h-5 text-slate-400" /></button>
+                <button onClick={() => setPriorityPopup(null)} className="p-2 hover:bg-canvas rounded-full transition-colors"><X className="w-5 h-5 text-muted" /></button>
               </div>
-              <p className="text-xs text-slate-500">Case: <span className="font-mono font-bold text-blue-600">{c.complaintId}</span> — Score: <strong>{c.priorityScore}</strong></p>
-              <div className="space-y-2">
+              <p className="text-sm text-muted bg-canvas p-3 rounded-xl border border-line">Case: <span className="font-mono font-bold text-ink">{c.complaintId}</span> — Score: <strong className="text-authority">{c.priorityScore}</strong></p>
+              <div className="space-y-3">
                 {(c.priorityReason || []).map((r: string, i: number) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                    <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{r}</span>
+                  <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-canvas border border-line hover:border-authority/30 transition-colors">
+                    <CheckCircle2 className="w-5 h-5 text-authority shrink-0 mt-0.5" />
+                    <span className="text-sm font-medium text-ink leading-relaxed">{r}</span>
                   </div>
                 ))}
                 {(!c.priorityReason || c.priorityReason.length === 0) && (
-                  <p className="text-xs text-slate-400">No detailed priority reasoning stored for this case.</p>
+                  <p className="text-sm text-muted text-center py-4">No detailed priority reasoning stored for this case.</p>
                 )}
               </div>
             </div>
@@ -408,15 +434,15 @@ export default function AdminDashboardPage() {
       })()}
 
       {/* Complaints Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white">Active Complaint Queue</h3>
-          <span className="text-xs text-slate-500">{complaints.length} records</span>
+      <div className="bg-white rounded-3xl border border-line shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-line flex items-center justify-between bg-canvas/50">
+          <h3 className="font-serif-title text-xl text-ink">Active Complaint Queue</h3>
+          <span className="text-xs font-semibold text-muted bg-white border border-line px-3 py-1.5 rounded-full shadow-sm">{complaints.length} records</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase tracking-wider font-semibold">
+              <tr className="bg-canvas border-b border-line text-muted uppercase tracking-wider font-semibold text-[10px]">
                 <th className="p-4">Case ID</th>
                 <th className="p-4">Category</th>
                 <th className="p-4">Priority</th>
@@ -428,36 +454,36 @@ export default function AdminDashboardPage() {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+            <tbody className="divide-y divide-line">
               {complaints.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-12 text-center text-muted font-medium">
                     No complaints matching current filters.
                   </td>
                 </tr>
               ) : (
                 complaints.map((c) => (
-                  <tr key={c.complaintId} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                  <tr key={c.complaintId} className="hover:bg-canvas transition-colors">
                     <td className="p-4">
-                      <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{c.complaintId}</span>
+                      <span className="font-mono font-bold text-ink">{c.complaintId}</span>
                       {c.duplicateCount > 0 && (
-                        <span className="ml-1.5 text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-1.5 py-0.5 rounded">
+                        <span className="ml-2 text-[10px] bg-authority/10 text-authority px-2 py-0.5 rounded-full border border-authority/20">
                           +{c.duplicateCount} dupes
                         </span>
                       )}
                     </td>
-                    <td className="p-4 capitalize font-medium text-slate-700 dark:text-slate-300">
+                    <td className="p-4 capitalize font-medium text-ink">
                       {c.category?.replace(/_/g, " ")}
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <PriorityBadge priority={c.priority} />
                         <button
                           onClick={() => setPriorityPopup(c.complaintId)}
                           title="Why this priority?"
-                          className="text-slate-400 hover:text-blue-500 transition-colors"
+                          className="text-muted hover:text-authority transition-colors p-1"
                         >
-                          <HelpCircle className="w-3.5 h-3.5" />
+                          <HelpCircle className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -548,14 +574,39 @@ export default function AdminDashboardPage() {
                   className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm"
                   placeholder="Leave blank to keep current" />
               </div>
+              
+              {newStatus === "resolved" && (
+                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col items-center justify-center gap-2">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 text-center">
+                    📸 Upload Photographic Proof
+                  </p>
+                  <p className="text-[10px] text-slate-500 text-center mb-2">
+                    Required to mark the issue as resolved.
+                  </p>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={e => setProofFile(e.target.files?.[0] || null)}
+                    className="text-xs file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {proofFile && (
+                    <p className="text-xs text-emerald-600 font-medium mt-1">Ready to upload: {proofFile.name}</p>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setEditingComplaint(null)}
+                <button type="button" onClick={() => { setEditingComplaint(null); setProofFile(null); }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors">
                   Cancel
                 </button>
-                <button type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md transition-colors">
-                  Save Changes
+                <button type="submit" disabled={isUploading}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs shadow-md transition-colors flex items-center gap-2">
+                  {isUploading ? (
+                    <><span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" /> Uploading...</>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
               </div>
             </form>

@@ -150,14 +150,21 @@ async def update_complaint_status(
 
     if body.status == "resolved":
         complaint["resolvedAt"] = datetime.utcnow().isoformat()
+        if body.resolutionImageUrl:
+            complaint["resolutionEvidence"] = {"imageUrl": body.resolutionImageUrl, "submittedBy": auth_payload.get("uid", "authority")}
 
     await save_complaint(complaint)
 
     # Log action
     log = await get_agent_log(complaint_id) or {"complaintId": complaint_id, "events": []}
+    
+    log_message = f"Status updated from '{old_status}' to '{body.status}'" + (f" (Department: {body.department})" if body.department else "")
+    if body.resolutionImageUrl:
+        log_message += " — Photographic proof of resolution attached."
+
     log["events"].append({
         "type": "status_update",
-        "message": f"Status updated from '{old_status}' to '{body.status}'" + (f" (Department: {body.department})" if body.department else ""),
+        "message": log_message,
         "timestamp": datetime.utcnow().isoformat()
     })
     await save_agent_log(log)

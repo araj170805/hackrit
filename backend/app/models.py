@@ -79,6 +79,7 @@ class NotificationSchema(BaseModel):
 class StatusUpdateRequest(BaseModel):
     status: str
     department: Optional[str] = None
+    resolutionImageUrl: Optional[str] = None
 
 class ResolutionEvidenceSubmitRequest(BaseModel):
     token: str

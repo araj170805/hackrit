@@ -384,12 +384,28 @@ export default function ReportProblemPage() {
       )}
 
       {isSubmitting ? (
-        <div className="space-y-6">
-          <AgentVisualizer steps={agentSteps} isProcessing={!createdComplaintId} />
-          {createdComplaintId && (
-            <div className="text-center p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 font-medium">
-              🎉 Case <span className="font-mono font-bold">{createdComplaintId}</span> created! Redirecting to case tracking...
-            </div>
+        <div className="flex flex-col items-center justify-center py-20 space-y-6 bg-white rounded-3xl border border-slate-200 shadow-sm">
+          {!createdComplaintId ? (
+            <>
+              <div className="w-16 h-16 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin" />
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Submitting your report...</h3>
+                <p className="text-sm text-slate-500">Our AI agent is analyzing and routing your civic issue.</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-black text-slate-900">Problem Submitted!</h3>
+                <p className="text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full inline-block font-medium">
+                  Case <span className="font-mono font-bold">{createdComplaintId}</span> created successfully
+                </p>
+                <p className="text-sm text-slate-500 mt-2">Redirecting to case tracking...</p>
+              </div>
+            </>
           )}
         </div>
       ) : (

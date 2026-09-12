@@ -179,6 +179,19 @@ export default function ComplaintDetailPage() {
                 <img src={complaint.imageUrl} alt="Complaint Photo" className="rounded-2xl max-h-64 object-cover border border-slate-200 dark:border-slate-800 shadow-sm" />
               </div>
             )}
+
+            {complaint.resolutionEvidence?.imageUrl && (
+              <div className="pt-2">
+                <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Proof of Resolution
+                </h3>
+                <img
+                  src={complaint.resolutionEvidence.imageUrl}
+                  alt="Resolution proof submitted by authority"
+                  className="rounded-2xl max-h-64 object-cover border border-emerald-200 dark:border-emerald-900 shadow-sm"
+                />
+              </div>
+            )}
           </div>
 
           {/* Right sidebar: SLA + Community Impact */}
@@ -339,14 +352,14 @@ export default function ComplaintDetailPage() {
       />
 
       {/* ── Agent Activity Trace Log ── */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-6">
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-          <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-white">Agent Activity Trace</h3>
-            <p className="text-xs text-slate-400">Autonomous tool calls executed by CivicFix Agent • {agentLog.length} steps</p>
+            <h3 className="font-bold text-lg text-slate-900">Agent Activity Trace</h3>
+            <p className="text-xs text-slate-500">Autonomous tool calls executed by CivicFix Agent • {agentLog.length} steps</p>
           </div>
         </div>
 
@@ -356,14 +369,14 @@ export default function ComplaintDetailPage() {
           ) : (
             agentLog.map((evt: any, idx: number) => (
               <div key={idx} className="flex items-start gap-3 text-xs group">
-                <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 mt-0.5 group-hover:border-slate-600 transition-colors">
-                  {EVT_ICON[evt.type] || <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 mt-0.5 group-hover:border-emerald-200 group-hover:bg-emerald-50 transition-colors">
+                  {EVT_ICON[evt.type] || <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 </div>
                 <div className="flex-1 pt-0.5">
-                  <p className="font-medium text-slate-200 leading-relaxed">{evt.message}</p>
-                  <span className="text-[10px] text-slate-500 font-mono">{new Date(evt.timestamp).toLocaleTimeString()}</span>
+                  <p className="font-medium text-slate-700 leading-relaxed">{evt.message}</p>
+                  <span className="text-[10px] text-slate-400 font-mono">{new Date(evt.timestamp).toLocaleTimeString()}</span>
                 </div>
-                <span className="text-[10px] text-slate-600 font-mono bg-slate-800 px-2 py-0.5 rounded shrink-0">
+                <span className="text-[10px] text-slate-400 font-mono bg-slate-50 border border-slate-200 px-2 py-0.5 rounded shrink-0">
                   #{String(idx + 1).padStart(2, "0")}
                 </span>
               </div>

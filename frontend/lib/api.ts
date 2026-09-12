@@ -82,10 +82,10 @@ export async function getComplaintDetails(id: string) {
   return apiFetch(`/api/complaints/${id}`);
 }
 
-export async function updateComplaintStatus(id: string, status: string, department?: string) {
+export async function updateComplaintStatus(id: string, status: string, department?: string, resolutionImageUrl?: string) {
   return apiFetch(`/api/complaints/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, department })
+    body: JSON.stringify({ status, department, resolutionImageUrl })
   });
 }
 
