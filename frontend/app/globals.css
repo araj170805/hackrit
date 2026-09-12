@@ -8,19 +8,19 @@
   /* Minimal, single-accent-per-role design system. Citizen surfaces use the
      teal accent, authority surfaces use the indigo accent; neutrals are
      shared. Keep new UI to these tokens rather than introducing new hues. */
-  --color-ink: oklch(19% 0.012 260);
-  --color-muted: oklch(45% 0.016 260);
-  --color-line: oklch(90% 0.006 95);
-  --color-surface: oklch(100% 0 0);
-  --color-canvas: oklch(98% 0.004 95);
+  --color-ink: #1E2D24;
+  --color-muted: #5A6B5D;
+  --color-line: #E5E0D8;
+  --color-surface: #FFFFFF;
+  --color-canvas: #FDFBF7;
 
-  --color-citizen: oklch(56% 0.11 165);
-  --color-citizen-soft: oklch(95% 0.028 165);
-  --color-citizen-ink: oklch(28% 0.06 165);
+  --color-citizen: #5B823D;
+  --color-citizen-soft: #F0F4EC;
+  --color-citizen-ink: #2A3C1C;
 
-  --color-authority: oklch(40% 0.075 265);
-  --color-authority-soft: oklch(93% 0.02 265);
-  --color-authority-ink: oklch(26% 0.05 265);
+  --color-authority: #3A5A40;
+  --color-authority-soft: #EAEFEC;
+  --color-authority-ink: #1D2D20;
 
   --color-crit: oklch(52% 0.16 25);
   --color-crit-soft: oklch(94% 0.03 25);
@@ -63,6 +63,14 @@ body {
 }
 .animate-fade-up {
   animation: fadeUp 0.6s ease-out forwards;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
 }
 
 .scrollbar-none::-webkit-scrollbar { display: none; }

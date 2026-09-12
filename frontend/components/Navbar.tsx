@@ -54,7 +54,9 @@ export function Navbar() {
           <Link href="/problems-around-you" className={pathname === "/problems-around-you" ? "text-citizen-ink font-semibold" : "hover:text-ink transition-colors"}>
             Problems around you
           </Link>
-          <a href="#how-it-works" className="hover:text-ink transition-colors">How it works</a>
+          <Link href="/how-it-works" className={pathname === "/how-it-works" ? "text-citizen-ink font-semibold" : "hover:text-ink transition-colors"}>
+            How it works
+          </Link>
           {user && (
             <Link href={dashboardHref} className={pathname === dashboardHref ? "text-citizen-ink font-semibold" : "hover:text-ink transition-colors"}>
               {isAuthority ? "Authority console" : "My dashboard"}

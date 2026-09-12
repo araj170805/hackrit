@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { PlusCircle, MapPin, Calendar, Clock, AlertTriangle, ArrowRight, ShieldCheck, Maximize2, Minimize2 } from "lucide-react";
+import { PlusCircle, MapPin, Calendar, Clock, AlertTriangle, ArrowRight, ShieldCheck, Maximize2, Minimize2, User, Activity, Building } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getComplaints } from "@/lib/api";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
@@ -109,6 +109,15 @@ export default function CitizenDashboardPage() {
     imageUrl: c.imageUrl
   }));
 
+  const totalComplaints = complaints.length;
+  const totalImpact = complaints.reduce((sum, c) => sum + (c.affectedCitizens || c.duplicateCount || 0), 0);
+  
+  const departmentCounts = complaints.reduce((acc, c) => {
+    const dept = c.category?.replace(/_/g, " ") || "Other";
+    acc[dept] = (acc[dept] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       
@@ -116,7 +125,7 @@ export default function CitizenDashboardPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            My Reports
+            My Dashboard
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Track and monitor the status of your reported civic issues in real-time.
@@ -130,6 +139,50 @@ export default function CitizenDashboardPage() {
           <PlusCircle className="w-4 h-4" />
           Report New Problem
         </Link>
+      </div>
+
+      {/* My Profile / Impact Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 flex items-center justify-center">
+            <User className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Total Reports</p>
+            <h4 className="text-2xl font-extrabold text-slate-900 dark:text-white">{loading ? "-" : totalComplaints}</h4>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Community Support</p>
+            <h4 className="text-2xl font-extrabold text-slate-900 dark:text-white">{loading ? "-" : totalImpact} <span className="text-sm font-semibold text-slate-400 ml-1">upvotes</span></h4>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
+          <div className="flex items-center gap-2 mb-2">
+            <Building className="w-4 h-4 text-slate-400" />
+            <p className="text-sm font-medium text-slate-500">Department Breakdown</p>
+          </div>
+          <div className="space-y-1.5">
+            {loading ? (
+              <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-24"></div>
+            ) : Object.keys(departmentCounts).length === 0 ? (
+              <p className="text-xs text-slate-400">No reports yet.</p>
+            ) : (
+              Object.entries(departmentCounts).slice(0, 3).map(([dept, count]) => (
+                <div key={dept} className="flex items-center justify-between text-[13px]">
+                  <span className="text-slate-600 dark:text-slate-300 capitalize truncate max-w-[200px]">{dept}</span>
+                  <span className="font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">{count as React.ReactNode}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Live City Map Section */}

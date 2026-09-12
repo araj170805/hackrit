@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Newsreader } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CivicChatbot } from "@/components/CivicChatbot";
 import { AuthProvider } from "@/context/AuthContext";
 
-const plexSans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-sans" });
-const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-serif", style: ["normal", "italic"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif", style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
   title: "CivicFix — Geo-aware Autonomous AI Civic Resolution Platform",
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${plexSans.variable} ${newsreader.variable} h-full`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} h-full`}>
       <head>
         <link
           rel="stylesheet"
@@ -29,7 +29,7 @@ export default function RootLayout({
           crossOrigin=""
         />
       </head>
-      <body className={`${plexSans.className} min-h-full flex flex-col bg-canvas dark:bg-slate-950 text-ink dark:text-slate-100 antialiased selection:bg-citizen selection:text-white`}>
+      <body className={`${inter.className} min-h-full flex flex-col bg-canvas dark:bg-slate-950 text-ink dark:text-slate-100 antialiased selection:bg-citizen selection:text-white`}>
         <AuthProvider>
           <Navbar />
           <main className="flex-1">
